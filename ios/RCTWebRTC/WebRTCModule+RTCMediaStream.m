@@ -12,7 +12,7 @@
 #import <WebRTC/RTCVideoTrack.h>
 #import <WebRTC/RTCMediaConstraints.h>
 
-#import "WebRTCModuleRTCPeerConnection.h"
+#import "WebRTCModule+RTCPeerConnection.h"
 #import <AssetsLibrary/ALAssetsLibrary.h>
 #import <AVFoundation/AVFoundation.h>
 #import <ImageIO/ImageIO.h>
@@ -574,9 +574,11 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
     successCallback(mediaStream);
                 // TODO: error message
                 //erroCallback();
+            } else {
+                            // TODO: error message
+                            //erroCallback();
             }
-    } else {
-  } else {
+        } else {
     // According to step 6.2.3 of the getUserMedia() algorithm, if there is no
     // source, fail with a new OverconstrainedError.
     errorCallback(@"OverconstrainedError", /* errorMessage */ nil);
