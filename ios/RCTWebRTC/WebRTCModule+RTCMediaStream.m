@@ -75,6 +75,22 @@ typedef NS_ENUM(NSInteger, RCTCameraCaptureTarget) {
              };
 }
 
+RCT_EXPORT_METHOD(setZoom:(CGFloat)zoomFactor) {
+    if (isnan(zoomFactor)) {
+        return;
+    }
+    NSError *error = nil;
+    // TODO use selected camera, should refer to self.something...
+    AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+    if ([device lockForConfiguration:&error]) {
+        // device.videoZoomFactor = zoomFactor;
+        [device rampToVideoZoomFactor:zoomFactor withRate:10.0];
+        [device unlockForConfiguration];
+    } else {
+        NSLog(@"error: %@", error);
+    }
+}
+
 RCT_EXPORT_METHOD(takePicture:(NSDictionary *)options
                   successCallback:(RCTResponseSenderBlock)successCallback
                   errorCallback:(RCTResponseSenderBlock)errorCallback) {
@@ -552,6 +568,8 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
       break;
     }
 
+    self.videoCaptureDeviceInput = videoDevice;
+
     NSString *trackUUID = [[NSUUID UUID] UUIDString];
     RTCVideoTrack *videoTrack = [self.peerConnectionFactory videoTrackWithSource:videoSource trackId:trackUUID];
     [mediaStream addVideoTrack:videoTrack];
@@ -571,7 +589,7 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
             {
                 [captureSession addOutput:stillImageOutput];
 
-    successCallback(mediaStream);
+                successCallback(mediaStream);
                 // TODO: error message
                 //erroCallback();
             } else {

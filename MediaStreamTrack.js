@@ -63,11 +63,16 @@ export default class MediaStreamTrack extends EventTarget(MEDIA_STREAM_TRACK_EVE
   static getSources(success: (sources: Array<SourceInfo>) => void) {
     WebRTCModule.mediaStreamTrackGetSources(success);
   }
-     // TODO: restrict option values resp. document them
-      static takePicture(options: SnapshotOptions, success: (any) => {}, error: (any) => {}) {
-          let nativeOptions = convertToNativeOptions(options);
-          WebRTCModule.takePicture(nativeOptions, success, error);
-      }
+
+  // TODO: restrict option values resp. document them
+  static takePicture(options: SnapshotOptions, success: (any) => {}, error: (any) => {}) {
+      let nativeOptions = convertToNativeOptions(options);
+      WebRTCModule.takePicture(nativeOptions, success, error);
+  }
+
+  static setZoom(zoomLevel) {
+    WebRTCModule.setZoom(zoomLevel);
+  }
 
   _enabled: boolean;
   id: string;
