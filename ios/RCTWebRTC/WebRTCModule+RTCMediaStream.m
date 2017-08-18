@@ -99,7 +99,21 @@ RCT_EXPORT_METHOD(setExposure:(CGFloat)exposure) {
     // TODO use selected camera, should refer to self.something...
     AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
     if ([device lockForConfiguration:&error]) {
+        device.exposureMode = AVCaptureExposureModeLocked;
         [device setExposureTargetBias:exposure completionHandler:nil];
+        [device unlockForConfiguration];
+    } else {
+        NSLog(@"error: %@", error);
+    }
+}
+
+RCT_EXPORT_METHOD(resetExposure) {
+    NSError *error = nil;
+    // TODO use selected camera, should refer to self.something...
+    AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+    if ([device lockForConfiguration:&error]) {
+        [device setExposureTargetBias:0 completionHandler:nil];
+        device.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
         [device unlockForConfiguration];
     } else {
         NSLog(@"error: %@", error);

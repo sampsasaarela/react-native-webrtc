@@ -71,11 +71,15 @@ export default class MediaStreamTrack extends EventTarget(MEDIA_STREAM_TRACK_EVE
   }
 
   static setZoom(zoomLevel) {
-    WebRTCModule.setZoom(zoomLevel);
+    WebRTCModule.setZoom(zoomLevel === null ? 1 : zoomLevel);
   }
 
   static setExposure(exposure) {
-    WebRTCModule.setExposure(exposure);
+    if (exposure === null) {
+      WebRTCModule.resetExposure();
+    } else {
+      WebRTCModule.setExposure(exposure);
+    }
   }
 
   static setColorTemperature(temperature) {
