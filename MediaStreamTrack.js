@@ -74,6 +74,10 @@ export default class MediaStreamTrack extends EventTarget(MEDIA_STREAM_TRACK_EVE
     WebRTCModule.setZoom(zoomLevel);
   }
 
+  static setExposure(exposure) {
+    WebRTCModule.setExposure(exposure);
+  }
+
   _enabled: boolean;
   id: string;
   kind: string;

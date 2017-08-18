@@ -91,6 +91,22 @@ RCT_EXPORT_METHOD(setZoom:(CGFloat)zoomFactor) {
     }
 }
 
+RCT_EXPORT_METHOD(setExposure:(CGFloat)exposure) {
+    if (isnan(exposure)) {
+        return;
+    }
+    NSError *error = nil;
+    // TODO use selected camera, should refer to self.something...
+    AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+    if ([device lockForConfiguration:&error]) {
+        // device.videoZoomFactor = zoomFactor;
+        [device setExposureTargetBias:exposure completionHandler:nil];
+        [device unlockForConfiguration];
+    } else {
+        NSLog(@"error: %@", error);
+    }
+}
+
 RCT_EXPORT_METHOD(takePicture:(NSDictionary *)options
                   successCallback:(RCTResponseSenderBlock)successCallback
                   errorCallback:(RCTResponseSenderBlock)errorCallback) {
