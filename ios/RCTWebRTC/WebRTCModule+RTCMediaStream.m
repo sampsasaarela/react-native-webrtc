@@ -127,6 +127,18 @@ RCT_EXPORT_METHOD(setColorTemperature:(CGFloat)temperature) {
     }
 }
 
+RCT_EXPORT_METHOD(resetColorTemperature) {
+    NSError *error = nil;
+    // TODO use selected camera, should refer to self.something...
+    AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+    if ([device lockForConfiguration:&error]) {
+      device.whiteBalanceMode = AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance;
+      [device unlockForConfiguration];
+    } else {
+        NSLog(@"error: %@", error);
+    }
+}
+
 RCT_EXPORT_METHOD(takePicture:(NSDictionary *)options
                   successCallback:(RCTResponseSenderBlock)successCallback
                   errorCallback:(RCTResponseSenderBlock)errorCallback) {
