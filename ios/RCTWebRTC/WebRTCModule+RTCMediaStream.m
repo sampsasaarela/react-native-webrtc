@@ -99,9 +99,29 @@ RCT_EXPORT_METHOD(setExposure:(CGFloat)exposure) {
     // TODO use selected camera, should refer to self.something...
     AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
     if ([device lockForConfiguration:&error]) {
-        // device.videoZoomFactor = zoomFactor;
         [device setExposureTargetBias:exposure completionHandler:nil];
         [device unlockForConfiguration];
+    } else {
+        NSLog(@"error: %@", error);
+    }
+}
+
+RCT_EXPORT_METHOD(setColorTemperature:(CGFloat)temperature) {
+    if (isnan(temperature)) {
+        return;
+    }
+    NSError *error = nil;
+    // TODO use selected camera, should refer to self.something...
+    AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+    if ([device lockForConfiguration:&error]) {
+      AVCaptureWhiteBalanceTemperatureAndTintValues gains = {
+          .temperature = temperature,
+          .tint = 0,
+      };
+
+      AVCaptureWhiteBalanceGains normalizedGains = [self normalizedGains:[device deviceWhiteBalanceGainsForTemperatureAndTintValues:gains]];
+      [device setWhiteBalanceModeLockedWithDeviceWhiteBalanceGains:normalizedGains completionHandler:nil];
+      [device unlockForConfiguration];
     } else {
         NSLog(@"error: %@", error);
     }
@@ -186,6 +206,24 @@ RCT_EXPORT_METHOD(takePicture:(NSDictionary *)options
             errorCallback(@[error.description]);
         }
     }];
+}
+
+- (AVCaptureWhiteBalanceGains)normalizedGains:(AVCaptureWhiteBalanceGains)gains
+{
+    // TODO use selected camera, should refer to self.something...
+    AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+
+    AVCaptureWhiteBalanceGains g = gains;
+
+    g.redGain = MAX( 1.0, g.redGain );
+    g.greenGain = MAX( 1.0, g.greenGain );
+    g.blueGain = MAX( 1.0, g.blueGain );
+
+    g.redGain = MIN( device.maxWhiteBalanceGain, g.redGain );
+    g.greenGain = MIN( device.maxWhiteBalanceGain, g.greenGain );
+    g.blueGain = MIN( device.maxWhiteBalanceGain, g.blueGain );
+
+    return g;
 }
 
 - (CGImageRef)resizeCGImage:(CGImageRef)image maxSize:(int)maxSize {
