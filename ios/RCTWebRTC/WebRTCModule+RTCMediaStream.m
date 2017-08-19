@@ -80,12 +80,11 @@ RCT_EXPORT_METHOD(setZoom:(CGFloat)zoomFactor) {
         return;
     }
     NSError *error = nil;
-    // TODO use selected camera, should refer to self.something...
-    AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
-    if ([device lockForConfiguration:&error]) {
+
+    if ([self.videoCaptureDevice lockForConfiguration:&error]) {
         // device.videoZoomFactor = zoomFactor;
-        [device rampToVideoZoomFactor:zoomFactor withRate:10.0];
-        [device unlockForConfiguration];
+        [self.videoCaptureDevice rampToVideoZoomFactor:zoomFactor withRate:10.0];
+        [self.videoCaptureDevice unlockForConfiguration];
     } else {
         NSLog(@"error: %@", error);
     }
@@ -96,12 +95,11 @@ RCT_EXPORT_METHOD(setExposure:(CGFloat)exposure) {
         return;
     }
     NSError *error = nil;
-    // TODO use selected camera, should refer to self.something...
-    AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
-    if ([device lockForConfiguration:&error]) {
-        device.exposureMode = AVCaptureExposureModeLocked;
-        [device setExposureTargetBias:exposure completionHandler:nil];
-        [device unlockForConfiguration];
+
+    if ([self.videoCaptureDevice lockForConfiguration:&error]) {
+        self.videoCaptureDevice.exposureMode = AVCaptureExposureModeLocked;
+        [self.videoCaptureDevice setExposureTargetBias:exposure completionHandler:nil];
+        [self.videoCaptureDevice unlockForConfiguration];
     } else {
         NSLog(@"error: %@", error);
     }
@@ -109,12 +107,11 @@ RCT_EXPORT_METHOD(setExposure:(CGFloat)exposure) {
 
 RCT_EXPORT_METHOD(resetExposure) {
     NSError *error = nil;
-    // TODO use selected camera, should refer to self.something...
-    AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
-    if ([device lockForConfiguration:&error]) {
-        [device setExposureTargetBias:0 completionHandler:nil];
-        device.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
-        [device unlockForConfiguration];
+
+    if ([self.videoCaptureDevice lockForConfiguration:&error]) {
+        [self.videoCaptureDevice setExposureTargetBias:0 completionHandler:nil];
+        self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
+        [self.videoCaptureDevice unlockForConfiguration];
     } else {
         NSLog(@"error: %@", error);
     }
@@ -125,17 +122,16 @@ RCT_EXPORT_METHOD(setColorTemperature:(CGFloat)temperature) {
         return;
     }
     NSError *error = nil;
-    // TODO use selected camera, should refer to self.something...
-    AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
-    if ([device lockForConfiguration:&error]) {
+
+    if ([self.videoCaptureDevice lockForConfiguration:&error]) {
       AVCaptureWhiteBalanceTemperatureAndTintValues gains = {
           .temperature = temperature,
           .tint = 0,
       };
 
-      AVCaptureWhiteBalanceGains normalizedGains = [self normalizedGains:[device deviceWhiteBalanceGainsForTemperatureAndTintValues:gains]];
-      [device setWhiteBalanceModeLockedWithDeviceWhiteBalanceGains:normalizedGains completionHandler:nil];
-      [device unlockForConfiguration];
+      AVCaptureWhiteBalanceGains normalizedGains = [self normalizedGains:[self.videoCaptureDevice deviceWhiteBalanceGainsForTemperatureAndTintValues:gains]];
+      [self.videoCaptureDevice setWhiteBalanceModeLockedWithDeviceWhiteBalanceGains:normalizedGains completionHandler:nil];
+      [self.videoCaptureDevice unlockForConfiguration];
     } else {
         NSLog(@"error: %@", error);
     }
@@ -143,11 +139,10 @@ RCT_EXPORT_METHOD(setColorTemperature:(CGFloat)temperature) {
 
 RCT_EXPORT_METHOD(resetColorTemperature) {
     NSError *error = nil;
-    // TODO use selected camera, should refer to self.something...
-    AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
-    if ([device lockForConfiguration:&error]) {
-      device.whiteBalanceMode = AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance;
-      [device unlockForConfiguration];
+
+    if ([self.videoCaptureDevice lockForConfiguration:&error]) {
+      self.videoCaptureDevice.whiteBalanceMode = AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance;
+      [self.videoCaptureDevice unlockForConfiguration];
     } else {
         NSLog(@"error: %@", error);
     }
@@ -156,9 +151,6 @@ RCT_EXPORT_METHOD(resetColorTemperature) {
 
 RCT_EXPORT_METHOD(fetchMinAndMaxValues:(RCTResponseSenderBlock)successCallback
                   errorCallback:(RCTResponseSenderBlock)errorCallback) {
-
-      // TODO use selected camera, should refer to self.something...
-      AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
 
       AVCaptureWhiteBalanceTemperatureAndTintValues maxWhiteBalanceGains = {
           .temperature = 10000000,
@@ -169,24 +161,24 @@ RCT_EXPORT_METHOD(fetchMinAndMaxValues:(RCTResponseSenderBlock)successCallback
           .tint = 0,
       };
 
-      AVCaptureWhiteBalanceGains maxWhiteBalanceGainsNormalized = [self normalizedGains:[device deviceWhiteBalanceGainsForTemperatureAndTintValues:maxWhiteBalanceGains]];
-      AVCaptureWhiteBalanceGains minWhiteBalanceGainsNormalized = [self normalizedGains:[device deviceWhiteBalanceGainsForTemperatureAndTintValues:minWhiteBalanceGains]];
+      AVCaptureWhiteBalanceGains maxWhiteBalanceGainsNormalized = [self normalizedGains:[self.videoCaptureDevice deviceWhiteBalanceGainsForTemperatureAndTintValues:maxWhiteBalanceGains]];
+      AVCaptureWhiteBalanceGains minWhiteBalanceGainsNormalized = [self normalizedGains:[self.videoCaptureDevice deviceWhiteBalanceGainsForTemperatureAndTintValues:minWhiteBalanceGains]];
 
-      AVCaptureWhiteBalanceTemperatureAndTintValues maxColorTempAndTint = [device temperatureAndTintValuesForDeviceWhiteBalanceGains:maxWhiteBalanceGainsNormalized];
-      AVCaptureWhiteBalanceTemperatureAndTintValues minColorTempAndTint = [device temperatureAndTintValuesForDeviceWhiteBalanceGains:minWhiteBalanceGainsNormalized];
+      AVCaptureWhiteBalanceTemperatureAndTintValues maxColorTempAndTint = [self.videoCaptureDevice temperatureAndTintValuesForDeviceWhiteBalanceGains:maxWhiteBalanceGainsNormalized];
+      AVCaptureWhiteBalanceTemperatureAndTintValues minColorTempAndTint = [self.videoCaptureDevice temperatureAndTintValuesForDeviceWhiteBalanceGains:minWhiteBalanceGainsNormalized];
 
-      CGFloat exposureDefaultValue = (abs(device.maxExposureTargetBias) - abs(device.minExposureTargetBias)) / 2;
+      CGFloat exposureDefaultValue = (abs(self.videoCaptureDevice.maxExposureTargetBias) - abs(self.videoCaptureDevice.minExposureTargetBias)) / 2;
       CGFloat colorTemperatureDefaultValue = (abs(maxColorTempAndTint.temperature) - abs(minColorTempAndTint.temperature)) / 2;
 
       NSDictionary* result= @{
         @"zoomLevel" : @{
-          @"minimumValue" : @1, // TODO on ios 11+ use minAvailableVideoZoomFactor
-          @"maximumValue" : @16, // TODO on ios 11+ use maxAvailableVideoZoomFactor
+          @"minimumValue" : @1, // TODO: in ios 11+ use minAvailableVideoZoomFactor
+          @"maximumValue" : @16, // TODO: in ios 11+ use maxAvailableVideoZoomFactor
           @"defaultValue" : @1
         },
         @"exposure" : @{
-          @"minimumValue" : @(device.minExposureTargetBias),
-          @"maximumValue" : @(device.maxExposureTargetBias),
+          @"minimumValue" : @(self.videoCaptureDevice.minExposureTargetBias),
+          @"maximumValue" : @(self.videoCaptureDevice.maxExposureTargetBias),
           @"defaultValue" : @(exposureDefaultValue)
         },
         @"colorTemperature" : @{
@@ -282,18 +274,15 @@ RCT_EXPORT_METHOD(takePicture:(NSDictionary *)options
 
 - (AVCaptureWhiteBalanceGains)normalizedGains:(AVCaptureWhiteBalanceGains)gains
 {
-    // TODO use selected camera, should refer to self.something...
-    AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
-
     AVCaptureWhiteBalanceGains g = gains;
 
     g.redGain = MAX( 1.0, g.redGain );
     g.greenGain = MAX( 1.0, g.greenGain );
     g.blueGain = MAX( 1.0, g.blueGain );
 
-    g.redGain = MIN( device.maxWhiteBalanceGain, g.redGain );
-    g.greenGain = MIN( device.maxWhiteBalanceGain, g.greenGain );
-    g.blueGain = MIN( device.maxWhiteBalanceGain, g.blueGain );
+    g.redGain = MIN( self.videoCaptureDevice.maxWhiteBalanceGain, g.redGain );
+    g.greenGain = MIN( self.videoCaptureDevice.maxWhiteBalanceGain, g.greenGain );
+    g.blueGain = MIN( self.videoCaptureDevice.maxWhiteBalanceGain, g.blueGain );
 
     return g;
 }
@@ -694,7 +683,8 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
       break;
     }
 
-    self.videoCaptureDeviceInput = videoDevice;
+
+    self.videoCaptureDevice = videoDevice;
 
     NSString *trackUUID = [[NSUUID UUID] UUIDString];
     RTCVideoTrack *videoTrack = [self.peerConnectionFactory videoTrackWithSource:videoSource trackId:trackUUID];
