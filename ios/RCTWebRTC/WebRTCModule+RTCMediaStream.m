@@ -228,7 +228,7 @@ RCT_EXPORT_METHOD(takePicture:(NSDictionary *)options
             CGImageRef CGImage = CGImageSourceCreateImageAtIndex(source, 0, NULL);
 
             // Resize cgimage
-            CGImage = [self resizeCGImage:CGImage maxSize:maxSize];
+            // CGImage = [self resizeCGImage:CGImage maxSize:maxSize];
 
             // Rotate it
             CGImageRef rotatedCGImage;
@@ -701,7 +701,7 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
     [mediaStream addVideoTrack:videoTrack];
 
 
-            AVCaptureSession *captureSession = videoSource.captureSession;
+            self.videoCaptureSession = videoSource.captureSession;
 
             // setup output for still image
             stillImageOutput = [[AVCaptureStillImageOutput alloc] init];
@@ -711,9 +711,11 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
 
             [stillImageOutput setOutputSettings:outputSettings];
 
-            if ([captureSession canAddOutput:stillImageOutput])
+            if ([self.videoCaptureSession canAddOutput:stillImageOutput])
             {
-                [captureSession addOutput:stillImageOutput];
+                [self.videoCaptureSession addOutput:stillImageOutput];
+
+                [self setCaptureQuality:AVCaptureSessionPresetPhoto];
 
                 successCallback(mediaStream);
                 // TODO: error message
@@ -727,6 +729,17 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
     // source, fail with a new OverconstrainedError.
     errorCallback(@"OverconstrainedError", /* errorMessage */ nil);
   }
+}
+
+- (void)setCaptureQuality:(NSString *)quality
+{
+    if (quality) {
+        [self.videoCaptureSession beginConfiguration];
+        if ([self.videoCaptureSession canSetSessionPreset:quality]) {
+            self.videoCaptureSession.sessionPreset = quality;
+        }
+        [self.videoCaptureSession commitConfiguration];
+    }
 }
 
 RCT_EXPORT_METHOD(mediaStreamRelease:(nonnull NSString *)streamID)

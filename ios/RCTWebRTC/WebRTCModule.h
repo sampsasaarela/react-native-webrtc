@@ -27,5 +27,7 @@
 @property (nonatomic, strong) NSMutableDictionary<NSString *, RTCMediaStream *> *remoteStreams;
 @property (nonatomic, strong) NSMutableDictionary<NSString *, RTCMediaStreamTrack *> *remoteTracks;
 @property (nonatomic, strong) AVCaptureDeviceInput *videoCaptureDeviceInput;
+@property (nonatomic, strong) AVCaptureSession *videoCaptureSession;
+
 
 @end
