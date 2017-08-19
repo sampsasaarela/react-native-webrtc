@@ -153,6 +153,46 @@ RCT_EXPORT_METHOD(resetColorTemperature) {
     }
 }
 
+
+RCT_EXPORT_METHOD(fetchMinAndMaxValues:(RCTResponseSenderBlock)successCallback
+                  errorCallback:(RCTResponseSenderBlock)errorCallback) {
+
+      // TODO use selected camera, should refer to self.something...
+      AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+
+      AVCaptureWhiteBalanceTemperatureAndTintValues maxWhiteBalanceGains = {
+          .temperature = 10000000,
+          .tint = 0,
+      };
+      AVCaptureWhiteBalanceTemperatureAndTintValues minWhiteBalanceGains = {
+          .temperature = 0,
+          .tint = 0,
+      };
+
+      AVCaptureWhiteBalanceGains maxWhiteBalanceGainsNormalized = [self normalizedGains:[device deviceWhiteBalanceGainsForTemperatureAndTintValues:maxWhiteBalanceGains]];
+      AVCaptureWhiteBalanceGains minWhiteBalanceGainsNormalized = [self normalizedGains:[device deviceWhiteBalanceGainsForTemperatureAndTintValues:minWhiteBalanceGains]];
+
+      AVCaptureWhiteBalanceTemperatureAndTintValues maxColorTempAndTint = [device temperatureAndTintValuesForDeviceWhiteBalanceGains:maxWhiteBalanceGainsNormalized];
+      AVCaptureWhiteBalanceTemperatureAndTintValues minColorTempAndTint = [device temperatureAndTintValuesForDeviceWhiteBalanceGains:minWhiteBalanceGainsNormalized];
+
+      NSDictionary* result= @{
+        @"zoomLevel" : @{
+          @"minimumValue" : @1, // TODO on ios 11+ use minAvailableVideoZoomFactor
+          @"maximumValue" : @16 // TODO on ios 11+ use maxAvailableVideoZoomFactor
+        },
+        @"exposure" : @{
+          @"minimumValue" : @(device.minExposureTargetBias),
+          @"maximumValue" : @(device.maxExposureTargetBias)
+        },
+        @"colorTemperature" : @{
+          @"minimumValue" : @(minColorTempAndTint.temperature),
+          @"maximumValue" : @(maxColorTempAndTint.temperature)
+        }
+      };
+
+      successCallback(@[result]);
+}
+
 RCT_EXPORT_METHOD(takePicture:(NSDictionary *)options
                   successCallback:(RCTResponseSenderBlock)successCallback
                   errorCallback:(RCTResponseSenderBlock)errorCallback) {

@@ -90,6 +90,12 @@ export default class MediaStreamTrack extends EventTarget(MEDIA_STREAM_TRACK_EVE
     }
   }
 
+  static fetchMinAndMaxValues() {
+    return new Promise((resolve, reject) => {
+      WebRTCModule.fetchMinAndMaxValues(resolve, reject);
+    });
+  }
+
   _enabled: boolean;
   id: string;
   kind: string;
