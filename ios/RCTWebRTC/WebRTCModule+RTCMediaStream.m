@@ -175,18 +175,24 @@ RCT_EXPORT_METHOD(fetchMinAndMaxValues:(RCTResponseSenderBlock)successCallback
       AVCaptureWhiteBalanceTemperatureAndTintValues maxColorTempAndTint = [device temperatureAndTintValuesForDeviceWhiteBalanceGains:maxWhiteBalanceGainsNormalized];
       AVCaptureWhiteBalanceTemperatureAndTintValues minColorTempAndTint = [device temperatureAndTintValuesForDeviceWhiteBalanceGains:minWhiteBalanceGainsNormalized];
 
+      CGFloat exposureDefaultValue = (device.maxExposureTargetBias - device.minExposureTargetBias) / 2;
+      CGFloat colorTemperatureDefaultValue = (maxColorTempAndTint.temperature - minColorTempAndTint.temperature) / 2;
+
       NSDictionary* result= @{
         @"zoomLevel" : @{
           @"minimumValue" : @1, // TODO on ios 11+ use minAvailableVideoZoomFactor
-          @"maximumValue" : @16 // TODO on ios 11+ use maxAvailableVideoZoomFactor
+          @"maximumValue" : @16, // TODO on ios 11+ use maxAvailableVideoZoomFactor
+          @"defaultValue" : @1
         },
         @"exposure" : @{
           @"minimumValue" : @(device.minExposureTargetBias),
-          @"maximumValue" : @(device.maxExposureTargetBias)
+          @"maximumValue" : @(device.maxExposureTargetBias),
+          @"defaultValue" : @(exposureDefaultValue)
         },
         @"colorTemperature" : @{
           @"minimumValue" : @(minColorTempAndTint.temperature),
-          @"maximumValue" : @(maxColorTempAndTint.temperature)
+          @"maximumValue" : @(maxColorTempAndTint.temperature),
+          @"defaultValue" : @(colorTemperatureDefaultValue)
         }
       };
 
