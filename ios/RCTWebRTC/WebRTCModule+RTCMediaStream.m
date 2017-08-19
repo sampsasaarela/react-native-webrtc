@@ -206,67 +206,69 @@ RCT_EXPORT_METHOD(takePicture:(NSDictionary *)options
         jpegQuality = 1;
     }
 
-    [stillImageOutput captureStillImageAsynchronouslyFromConnection:[stillImageOutput connectionWithMediaType:AVMediaTypeVideo] completionHandler:^(CMSampleBufferRef imageDataSampleBuffer, NSError *error) {
+    dispatch_async(self.sessionQueue, ^{
+      [stillImageOutput captureStillImageAsynchronouslyFromConnection:[stillImageOutput connectionWithMediaType:AVMediaTypeVideo] completionHandler:^(CMSampleBufferRef imageDataSampleBuffer, NSError *error) {
 
-        if (imageDataSampleBuffer) {
-            NSData *imageData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageDataSampleBuffer];
+          if (imageDataSampleBuffer) {
+              NSData *imageData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageDataSampleBuffer];
 
-            // Create image source
-            CGImageSourceRef source = CGImageSourceCreateWithData((CFDataRef)imageData, NULL);
-            // Get all the metadata in the image
-            NSMutableDictionary *imageMetadata = [(NSDictionary *) CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, NULL)) mutableCopy];
+              // Create image source
+              CGImageSourceRef source = CGImageSourceCreateWithData((CFDataRef)imageData, NULL);
+              // Get all the metadata in the image
+              NSMutableDictionary *imageMetadata = [(NSDictionary *) CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, NULL)) mutableCopy];
 
-            // Create cgimage
-            CGImageRef CGImage = CGImageSourceCreateImageAtIndex(source, 0, NULL);
+              // Create cgimage
+              CGImageRef CGImage = CGImageSourceCreateImageAtIndex(source, 0, NULL);
 
-            // Rotate it
-            CGImageRef rotatedCGImage;
+              // Rotate it
+              CGImageRef rotatedCGImage;
 
-            // Get metadata orientation
-            int metadataOrientation = [[imageMetadata objectForKey:(NSString *)kCGImagePropertyOrientation] intValue];
+              // Get metadata orientation
+              int metadataOrientation = [[imageMetadata objectForKey:(NSString *)kCGImagePropertyOrientation] intValue];
 
-            if (metadataOrientation == 6) {
-                rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:270];
-            } else if (metadataOrientation == 1) {
-                rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:0];
-            } else if (metadataOrientation == 3) {
-                rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:180];
-            } else {
-                rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:0];
-            }
+              if (metadataOrientation == 6) {
+                  rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:270];
+              } else if (metadataOrientation == 1) {
+                  rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:0];
+              } else if (metadataOrientation == 3) {
+                  rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:180];
+              } else {
+                  rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:0];
+              }
 
-            CGImageRelease(CGImage);
+              CGImageRelease(CGImage);
 
-            // Erase metadata orientation
-            [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyOrientation];
-            // Erase stupid TIFF stuff
-            [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
-
-
-            // Create destination thing
-            NSMutableData *rotatedImageData = [NSMutableData data];
-            CGImageDestinationRef destinationRef = CGImageDestinationCreateWithData((CFMutableDataRef)rotatedImageData, CGImageSourceGetType(source), 1, NULL);
-            CFRelease(source);
-
-            // Set compression
-            NSDictionary *properties = @{(__bridge NSString *)kCGImageDestinationLossyCompressionQuality: @(jpegQuality)};
-            CGImageDestinationSetProperties(destinationRef,
-                                            (__bridge CFDictionaryRef)properties);
-
-            // Add the image to the destination, reattaching metadata
-            CGImageDestinationAddImage(destinationRef, rotatedCGImage, (CFDictionaryRef) imageMetadata);
-
-            // And write
-            CGImageDestinationFinalize(destinationRef);
-            CFRelease(destinationRef);
+              // Erase metadata orientation
+              [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyOrientation];
+              // Erase stupid TIFF stuff
+              [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
 
 
-            [self saveImage:rotatedImageData target:captureTarget metadata:imageMetadata success:successCallback error:errorCallback];
-        }
-        else {
-            errorCallback(@[error.description]);
-        }
-    }];
+              // Create destination thing
+              NSMutableData *rotatedImageData = [NSMutableData data];
+              CGImageDestinationRef destinationRef = CGImageDestinationCreateWithData((CFMutableDataRef)rotatedImageData, CGImageSourceGetType(source), 1, NULL);
+              CFRelease(source);
+
+              // Set compression
+              NSDictionary *properties = @{(__bridge NSString *)kCGImageDestinationLossyCompressionQuality: @(jpegQuality)};
+              CGImageDestinationSetProperties(destinationRef,
+                                              (__bridge CFDictionaryRef)properties);
+
+              // Add the image to the destination, reattaching metadata
+              CGImageDestinationAddImage(destinationRef, rotatedCGImage, (CFDictionaryRef) imageMetadata);
+
+              // And write
+              CGImageDestinationFinalize(destinationRef);
+              CFRelease(destinationRef);
+
+
+              [self saveImage:rotatedImageData target:captureTarget metadata:imageMetadata success:successCallback error:errorCallback];
+          }
+          else {
+              errorCallback(@[error.description]);
+          }
+      }];
+    });
 }
 
 - (AVCaptureWhiteBalanceGains)normalizedGains:(AVCaptureWhiteBalanceGains)gains
