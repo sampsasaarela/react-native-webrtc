@@ -207,67 +207,94 @@ RCT_EXPORT_METHOD(takePicture:(NSDictionary *)options
     }
 
     dispatch_async(self.sessionQueue, ^{
-      [stillImageOutput captureStillImageAsynchronouslyFromConnection:[stillImageOutput connectionWithMediaType:AVMediaTypeVideo] completionHandler:^(CMSampleBufferRef imageDataSampleBuffer, NSError *error) {
+      #if TARGET_IPHONE_SIMULATOR
+            CGSize size = CGSizeMake(720, 1280);
+            UIGraphicsBeginImageContextWithOptions(size, YES, 0);
+                // Thanks https://gist.github.com/kylefox/1689973
+                CGFloat hue = ( arc4random() % 256 / 256.0 );  //  0.0 to 1.0
+                CGFloat saturation = ( arc4random() % 128 / 256.0 ) + 0.5;  //  0.5 to 1.0, away from white
+                CGFloat brightness = ( arc4random() % 128 / 256.0 ) + 0.5;  //  0.5 to 1.0, away from black
+                UIColor *color = [UIColor colorWithHue:hue saturation:saturation brightness:brightness alpha:1];
+                [color setFill];
+                UIRectFill(CGRectMake(0, 0, size.width, size.height));
+                NSDate *currentDate = [NSDate date];
+                NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+                [dateFormatter setDateFormat:@"dd.MM.YY HH:mm:ss"];
+                NSString *text = [dateFormatter stringFromDate:currentDate];
+                UIFont *font = [UIFont systemFontOfSize:40.0];
+                NSDictionary *attributes = [NSDictionary dictionaryWithObjects:
+                                            @[font, [UIColor blackColor]]
+                                                                       forKeys:
+                                            @[NSFontAttributeName, NSForegroundColorAttributeName]];
+                [text drawAtPoint:CGPointMake(size.width/3, size.height/2) withAttributes:attributes];
+                UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+            UIGraphicsEndImageContext();
 
-          if (imageDataSampleBuffer) {
-              NSData *imageData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageDataSampleBuffer];
+            NSData *imageData = UIImageJPEGRepresentation(image, 1.0);
+            [self saveImage:imageData target:captureTarget metadata:nil success:successCallback error:errorCallback];
+      #else
+        [stillImageOutput captureStillImageAsynchronouslyFromConnection:[stillImageOutput connectionWithMediaType:AVMediaTypeVideo] completionHandler:^(CMSampleBufferRef imageDataSampleBuffer, NSError *error) {
 
-              // Create image source
-              CGImageSourceRef source = CGImageSourceCreateWithData((CFDataRef)imageData, NULL);
-              // Get all the metadata in the image
-              NSMutableDictionary *imageMetadata = [(NSDictionary *) CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, NULL)) mutableCopy];
+            if (imageDataSampleBuffer) {
+                NSData *imageData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageDataSampleBuffer];
 
-              // Create cgimage
-              CGImageRef CGImage = CGImageSourceCreateImageAtIndex(source, 0, NULL);
+                // Create image source
+                CGImageSourceRef source = CGImageSourceCreateWithData((CFDataRef)imageData, NULL);
+                // Get all the metadata in the image
+                NSMutableDictionary *imageMetadata = [(NSDictionary *) CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, NULL)) mutableCopy];
 
-              // Rotate it
-              CGImageRef rotatedCGImage;
+                // Create cgimage
+                CGImageRef CGImage = CGImageSourceCreateImageAtIndex(source, 0, NULL);
 
-              // Get metadata orientation
-              int metadataOrientation = [[imageMetadata objectForKey:(NSString *)kCGImagePropertyOrientation] intValue];
+                // Rotate it
+                CGImageRef rotatedCGImage;
 
-              if (metadataOrientation == 6) {
-                  rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:270];
-              } else if (metadataOrientation == 1) {
-                  rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:0];
-              } else if (metadataOrientation == 3) {
-                  rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:180];
-              } else {
-                  rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:0];
-              }
+                // Get metadata orientation
+                int metadataOrientation = [[imageMetadata objectForKey:(NSString *)kCGImagePropertyOrientation] intValue];
 
-              CGImageRelease(CGImage);
+                if (metadataOrientation == 6) {
+                    rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:270];
+                } else if (metadataOrientation == 1) {
+                    rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:0];
+                } else if (metadataOrientation == 3) {
+                    rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:180];
+                } else {
+                    rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:0];
+                }
 
-              // Erase metadata orientation
-              [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyOrientation];
-              // Erase stupid TIFF stuff
-              [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
+                CGImageRelease(CGImage);
 
-
-              // Create destination thing
-              NSMutableData *rotatedImageData = [NSMutableData data];
-              CGImageDestinationRef destinationRef = CGImageDestinationCreateWithData((CFMutableDataRef)rotatedImageData, CGImageSourceGetType(source), 1, NULL);
-              CFRelease(source);
-
-              // Set compression
-              NSDictionary *properties = @{(__bridge NSString *)kCGImageDestinationLossyCompressionQuality: @(jpegQuality)};
-              CGImageDestinationSetProperties(destinationRef,
-                                              (__bridge CFDictionaryRef)properties);
-
-              // Add the image to the destination, reattaching metadata
-              CGImageDestinationAddImage(destinationRef, rotatedCGImage, (CFDictionaryRef) imageMetadata);
-
-              // And write
-              CGImageDestinationFinalize(destinationRef);
-              CFRelease(destinationRef);
+                // Erase metadata orientation
+                [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyOrientation];
+                // Erase stupid TIFF stuff
+                [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
 
 
-              [self saveImage:rotatedImageData target:captureTarget metadata:imageMetadata success:successCallback error:errorCallback];
-          }
-          else {
-              errorCallback(@[error.description]);
-          }
-      }];
+                // Create destination thing
+                NSMutableData *rotatedImageData = [NSMutableData data];
+                CGImageDestinationRef destinationRef = CGImageDestinationCreateWithData((CFMutableDataRef)rotatedImageData, CGImageSourceGetType(source), 1, NULL);
+                CFRelease(source);
+
+                // Set compression
+                NSDictionary *properties = @{(__bridge NSString *)kCGImageDestinationLossyCompressionQuality: @(jpegQuality)};
+                CGImageDestinationSetProperties(destinationRef,
+                                                (__bridge CFDictionaryRef)properties);
+
+                // Add the image to the destination, reattaching metadata
+                CGImageDestinationAddImage(destinationRef, rotatedCGImage, (CFDictionaryRef) imageMetadata);
+
+                // And write
+                CGImageDestinationFinalize(destinationRef);
+                CFRelease(destinationRef);
+
+
+                [self saveImage:rotatedImageData target:captureTarget metadata:imageMetadata success:successCallback error:errorCallback];
+            }
+            else {
+                errorCallback(@[error.description]);
+            }
+        }];
+      #endif
     });
 }
 
