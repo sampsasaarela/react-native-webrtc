@@ -175,8 +175,8 @@ RCT_EXPORT_METHOD(fetchMinAndMaxValues:(RCTResponseSenderBlock)successCallback
       AVCaptureWhiteBalanceTemperatureAndTintValues maxColorTempAndTint = [device temperatureAndTintValuesForDeviceWhiteBalanceGains:maxWhiteBalanceGainsNormalized];
       AVCaptureWhiteBalanceTemperatureAndTintValues minColorTempAndTint = [device temperatureAndTintValuesForDeviceWhiteBalanceGains:minWhiteBalanceGainsNormalized];
 
-      CGFloat exposureDefaultValue = (device.maxExposureTargetBias - device.minExposureTargetBias) / 2;
-      CGFloat colorTemperatureDefaultValue = (maxColorTempAndTint.temperature - minColorTempAndTint.temperature) / 2;
+      CGFloat exposureDefaultValue = (abs(device.maxExposureTargetBias) - abs(device.minExposureTargetBias)) / 2;
+      CGFloat colorTemperatureDefaultValue = (abs(maxColorTempAndTint.temperature) - abs(minColorTempAndTint.temperature)) / 2;
 
       NSDictionary* result= @{
         @"zoomLevel" : @{
