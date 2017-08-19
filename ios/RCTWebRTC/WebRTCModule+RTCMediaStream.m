@@ -219,9 +219,6 @@ RCT_EXPORT_METHOD(takePicture:(NSDictionary *)options
             // Create cgimage
             CGImageRef CGImage = CGImageSourceCreateImageAtIndex(source, 0, NULL);
 
-            // Resize cgimage
-            // CGImage = [self resizeCGImage:CGImage maxSize:maxSize];
-
             // Rotate it
             CGImageRef rotatedCGImage;
 
@@ -285,58 +282,6 @@ RCT_EXPORT_METHOD(takePicture:(NSDictionary *)options
     g.blueGain = MIN( self.videoCaptureDevice.maxWhiteBalanceGain, g.blueGain );
 
     return g;
-}
-
-- (CGImageRef)resizeCGImage:(CGImageRef)image maxSize:(int)maxSize {
-
-    size_t originalWidth = CGImageGetWidth(image);
-    size_t originalHeight = CGImageGetHeight(image);
-
-    // only resize if image larger than maxSize
-    if(originalWidth <= maxSize && originalHeight <= maxSize) {
-        return image;
-    }
-
-    size_t newWidth = originalWidth;
-    size_t newHeight = originalHeight;
-
-    // first check if we need to scale width
-    if (originalWidth > maxSize) {
-        //scale width to fit
-        newWidth = maxSize;
-        //scale height to maintain aspect ratio
-        newHeight = (newWidth * originalHeight) / originalWidth;
-    }
-
-    // then check if we need to scale even with the new height
-    if (newHeight > maxSize) {
-        //scale height to fit instead
-        newHeight = maxSize;
-        //scale width to maintain aspect ratio
-        newWidth = (newHeight * originalWidth) / originalHeight;
-    }
-
-    // create context, keeping original image properties
-    CGColorSpaceRef colorspace = CGImageGetColorSpace(image);
-    CGContextRef context = CGBitmapContextCreate(NULL, newWidth, newHeight,
-                                                 CGImageGetBitsPerComponent(image),
-                                                 CGImageGetBytesPerRow(image),
-                                                 colorspace,
-                                                 CGImageGetAlphaInfo(image));
-    CGColorSpaceRelease(colorspace);
-
-    if(context == NULL)
-        return image;
-
-
-
-    // draw image to context (resizing it)
-    CGContextDrawImage(context, CGRectMake(0, 0, newWidth, newHeight), image);
-    // extract resulting image from context
-    CGImageRef imgRef = CGBitmapContextCreateImage(context);
-    CGContextRelease(context);
-
-    return imgRef;
 }
 
 - (void)saveImage:(NSData*)imageData target:(NSInteger)target metadata:(NSDictionary *)metadata success:(RCTResponseSenderBlock)successCallback error:(RCTResponseSenderBlock)errorCallback {
