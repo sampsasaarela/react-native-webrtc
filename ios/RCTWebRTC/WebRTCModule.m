@@ -33,6 +33,7 @@
     _remoteTracks = [NSMutableDictionary new];
     _localStreams = [NSMutableDictionary new];
     _localTracks = [NSMutableDictionary new];
+    self.sessionQueue = dispatch_queue_create("webRTCModuleQueue", DISPATCH_QUEUE_SERIAL);
   }
   return self;
 }

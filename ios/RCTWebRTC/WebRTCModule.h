@@ -28,6 +28,7 @@
 @property (nonatomic, strong) NSMutableDictionary<NSString *, RTCMediaStreamTrack *> *remoteTracks;
 @property (nonatomic, strong) AVCaptureDevice *videoCaptureDevice;
 @property (nonatomic, strong) AVCaptureSession *videoCaptureSession;
+@property (nonatomic, strong) dispatch_queue_t sessionQueue;
 
 
 @end
