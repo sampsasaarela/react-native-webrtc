@@ -164,28 +164,31 @@ RCT_EXPORT_METHOD(resetColorTemperature) {
 RCT_EXPORT_METHOD(fetchMinAndMaxValues:(RCTResponseSenderBlock)successCallback
                   errorCallback:(RCTResponseSenderBlock)errorCallback) {
 
-  AVCaptureWhiteBalanceTemperatureAndTintValues maxWhiteBalanceGains = {
+  /*AVCaptureWhiteBalanceTemperatureAndTintValues maxWhiteBalanceGains = {
       .temperature = 10000000,
       .tint = 0,
-  };
+  };*/
   AVCaptureWhiteBalanceTemperatureAndTintValues minWhiteBalanceGains = {
       .temperature = 0,
       .tint = 0,
   };
 
-  AVCaptureWhiteBalanceGains maxWhiteBalanceGainsNormalized = [self normalizedGains:[self.videoCaptureDevice deviceWhiteBalanceGainsForTemperatureAndTintValues:maxWhiteBalanceGains]];
+  // AVCaptureWhiteBalanceGains maxWhiteBalanceGainsNormalized = [self normalizedGains:[self.videoCaptureDevice deviceWhiteBalanceGainsForTemperatureAndTintValues:maxWhiteBalanceGains]];
   AVCaptureWhiteBalanceGains minWhiteBalanceGainsNormalized = [self normalizedGains:[self.videoCaptureDevice deviceWhiteBalanceGainsForTemperatureAndTintValues:minWhiteBalanceGains]];
 
-  AVCaptureWhiteBalanceTemperatureAndTintValues maxColorTempAndTint = [self.videoCaptureDevice temperatureAndTintValuesForDeviceWhiteBalanceGains:maxWhiteBalanceGainsNormalized];
+  // AVCaptureWhiteBalanceTemperatureAndTintValues maxColorTempAndTint = [self.videoCaptureDevice temperatureAndTintValuesForDeviceWhiteBalanceGains:maxWhiteBalanceGainsNormalized];
   AVCaptureWhiteBalanceTemperatureAndTintValues minColorTempAndTint = [self.videoCaptureDevice temperatureAndTintValuesForDeviceWhiteBalanceGains:minWhiteBalanceGainsNormalized];
 
   CGFloat exposureDefaultValue = (abs(self.videoCaptureDevice.maxExposureTargetBias) - abs(self.videoCaptureDevice.minExposureTargetBias)) / 2;
-  CGFloat colorTemperatureDefaultValue = (abs(maxColorTempAndTint.temperature) - abs(minColorTempAndTint.temperature)) / 2;
+
+  CGFloat maxColorTemperatureValue = 10000.0f; // maxColorTempAndTint.temperature;
+  CGFloat minColorTemperatureValue = roundf(ceil(minColorTempAndTint.temperature / 100.0f)) * 100;
+  CGFloat colorTemperatureDefaultValue = roundf(ceil((maxColorTemperatureValue - ((maxColorTemperatureValue - minColorTemperatureValue) / 2)) / 100.0f)) * 100;
 
   NSDictionary* result= @{
     @"zoomLevel" : @{
       @"minimumValue" : @1, // TODO: in ios 11+ use minAvailableVideoZoomFactor
-      @"maximumValue" : @16, // TODO: in ios 11+ use maxAvailableVideoZoomFactor
+      @"maximumValue" : @8, // @16, // TODO: in ios 11+ use maxAvailableVideoZoomFactor
       @"defaultValue" : @1
     },
     @"exposure" : @{
@@ -194,8 +197,8 @@ RCT_EXPORT_METHOD(fetchMinAndMaxValues:(RCTResponseSenderBlock)successCallback
       @"defaultValue" : @(exposureDefaultValue)
     },
     @"colorTemperature" : @{
-      @"minimumValue" : @(minColorTempAndTint.temperature),
-      @"maximumValue" : @(maxColorTempAndTint.temperature),
+      @"minimumValue" : @(minColorTemperatureValue),
+      @"maximumValue" : @(maxColorTemperatureValue),
       @"defaultValue" : @(colorTemperatureDefaultValue)
     }
   };
