@@ -76,9 +76,11 @@ typedef NS_ENUM(NSInteger, RCTCameraCaptureTarget) {
 }
 
 RCT_EXPORT_METHOD(setZoom:(CGFloat)zoomFactor) {
-    if (isnan(zoomFactor)) {
-        return;
-    }
+  if (isnan(zoomFactor)) {
+      return;
+  }
+
+  dispatch_async(self.sessionQueue, ^{
     NSError *error = nil;
 
     if ([self.videoCaptureDevice lockForConfiguration:&error]) {
@@ -88,12 +90,15 @@ RCT_EXPORT_METHOD(setZoom:(CGFloat)zoomFactor) {
     } else {
         NSLog(@"error: %@", error);
     }
+  });
 }
 
 RCT_EXPORT_METHOD(setExposure:(CGFloat)exposure) {
-    if (isnan(exposure)) {
-        return;
-    }
+  if (isnan(exposure)) {
+      return;
+  }
+
+  dispatch_async(self.sessionQueue, ^{
     NSError *error = nil;
 
     if ([self.videoCaptureDevice lockForConfiguration:&error]) {
@@ -103,9 +108,11 @@ RCT_EXPORT_METHOD(setExposure:(CGFloat)exposure) {
     } else {
         NSLog(@"error: %@", error);
     }
+  });
 }
 
 RCT_EXPORT_METHOD(resetExposure) {
+  dispatch_async(self.sessionQueue, ^{
     NSError *error = nil;
 
     if ([self.videoCaptureDevice lockForConfiguration:&error]) {
@@ -115,12 +122,14 @@ RCT_EXPORT_METHOD(resetExposure) {
     } else {
         NSLog(@"error: %@", error);
     }
+  });
 }
 
 RCT_EXPORT_METHOD(setColorTemperature:(CGFloat)temperature) {
-    if (isnan(temperature)) {
-        return;
-    }
+  if (isnan(temperature)) {
+      return;
+  }
+  dispatch_async(self.sessionQueue, ^{
     NSError *error = nil;
 
     if ([self.videoCaptureDevice lockForConfiguration:&error]) {
@@ -135,9 +144,11 @@ RCT_EXPORT_METHOD(setColorTemperature:(CGFloat)temperature) {
     } else {
         NSLog(@"error: %@", error);
     }
+  });
 }
 
 RCT_EXPORT_METHOD(resetColorTemperature) {
+  dispatch_async(self.sessionQueue, ^{
     NSError *error = nil;
 
     if ([self.videoCaptureDevice lockForConfiguration:&error]) {
@@ -146,49 +157,50 @@ RCT_EXPORT_METHOD(resetColorTemperature) {
     } else {
         NSLog(@"error: %@", error);
     }
+  });
 }
 
 
 RCT_EXPORT_METHOD(fetchMinAndMaxValues:(RCTResponseSenderBlock)successCallback
                   errorCallback:(RCTResponseSenderBlock)errorCallback) {
 
-      AVCaptureWhiteBalanceTemperatureAndTintValues maxWhiteBalanceGains = {
-          .temperature = 10000000,
-          .tint = 0,
-      };
-      AVCaptureWhiteBalanceTemperatureAndTintValues minWhiteBalanceGains = {
-          .temperature = 0,
-          .tint = 0,
-      };
+  AVCaptureWhiteBalanceTemperatureAndTintValues maxWhiteBalanceGains = {
+      .temperature = 10000000,
+      .tint = 0,
+  };
+  AVCaptureWhiteBalanceTemperatureAndTintValues minWhiteBalanceGains = {
+      .temperature = 0,
+      .tint = 0,
+  };
 
-      AVCaptureWhiteBalanceGains maxWhiteBalanceGainsNormalized = [self normalizedGains:[self.videoCaptureDevice deviceWhiteBalanceGainsForTemperatureAndTintValues:maxWhiteBalanceGains]];
-      AVCaptureWhiteBalanceGains minWhiteBalanceGainsNormalized = [self normalizedGains:[self.videoCaptureDevice deviceWhiteBalanceGainsForTemperatureAndTintValues:minWhiteBalanceGains]];
+  AVCaptureWhiteBalanceGains maxWhiteBalanceGainsNormalized = [self normalizedGains:[self.videoCaptureDevice deviceWhiteBalanceGainsForTemperatureAndTintValues:maxWhiteBalanceGains]];
+  AVCaptureWhiteBalanceGains minWhiteBalanceGainsNormalized = [self normalizedGains:[self.videoCaptureDevice deviceWhiteBalanceGainsForTemperatureAndTintValues:minWhiteBalanceGains]];
 
-      AVCaptureWhiteBalanceTemperatureAndTintValues maxColorTempAndTint = [self.videoCaptureDevice temperatureAndTintValuesForDeviceWhiteBalanceGains:maxWhiteBalanceGainsNormalized];
-      AVCaptureWhiteBalanceTemperatureAndTintValues minColorTempAndTint = [self.videoCaptureDevice temperatureAndTintValuesForDeviceWhiteBalanceGains:minWhiteBalanceGainsNormalized];
+  AVCaptureWhiteBalanceTemperatureAndTintValues maxColorTempAndTint = [self.videoCaptureDevice temperatureAndTintValuesForDeviceWhiteBalanceGains:maxWhiteBalanceGainsNormalized];
+  AVCaptureWhiteBalanceTemperatureAndTintValues minColorTempAndTint = [self.videoCaptureDevice temperatureAndTintValuesForDeviceWhiteBalanceGains:minWhiteBalanceGainsNormalized];
 
-      CGFloat exposureDefaultValue = (abs(self.videoCaptureDevice.maxExposureTargetBias) - abs(self.videoCaptureDevice.minExposureTargetBias)) / 2;
-      CGFloat colorTemperatureDefaultValue = (abs(maxColorTempAndTint.temperature) - abs(minColorTempAndTint.temperature)) / 2;
+  CGFloat exposureDefaultValue = (abs(self.videoCaptureDevice.maxExposureTargetBias) - abs(self.videoCaptureDevice.minExposureTargetBias)) / 2;
+  CGFloat colorTemperatureDefaultValue = (abs(maxColorTempAndTint.temperature) - abs(minColorTempAndTint.temperature)) / 2;
 
-      NSDictionary* result= @{
-        @"zoomLevel" : @{
-          @"minimumValue" : @1, // TODO: in ios 11+ use minAvailableVideoZoomFactor
-          @"maximumValue" : @16, // TODO: in ios 11+ use maxAvailableVideoZoomFactor
-          @"defaultValue" : @1
-        },
-        @"exposure" : @{
-          @"minimumValue" : @(self.videoCaptureDevice.minExposureTargetBias),
-          @"maximumValue" : @(self.videoCaptureDevice.maxExposureTargetBias),
-          @"defaultValue" : @(exposureDefaultValue)
-        },
-        @"colorTemperature" : @{
-          @"minimumValue" : @(minColorTempAndTint.temperature),
-          @"maximumValue" : @(maxColorTempAndTint.temperature),
-          @"defaultValue" : @(colorTemperatureDefaultValue)
-        }
-      };
+  NSDictionary* result= @{
+    @"zoomLevel" : @{
+      @"minimumValue" : @1, // TODO: in ios 11+ use minAvailableVideoZoomFactor
+      @"maximumValue" : @16, // TODO: in ios 11+ use maxAvailableVideoZoomFactor
+      @"defaultValue" : @1
+    },
+    @"exposure" : @{
+      @"minimumValue" : @(self.videoCaptureDevice.minExposureTargetBias),
+      @"maximumValue" : @(self.videoCaptureDevice.maxExposureTargetBias),
+      @"defaultValue" : @(exposureDefaultValue)
+    },
+    @"colorTemperature" : @{
+      @"minimumValue" : @(minColorTempAndTint.temperature),
+      @"maximumValue" : @(maxColorTempAndTint.temperature),
+      @"defaultValue" : @(colorTemperatureDefaultValue)
+    }
+  };
 
-      successCallback(@[result]);
+  successCallback(@[result]);
 }
 
 RCT_EXPORT_METHOD(takePicture:(NSDictionary *)options
