@@ -164,24 +164,32 @@ RCT_EXPORT_METHOD(resetColorTemperature) {
 RCT_EXPORT_METHOD(fetchMinAndMaxValues:(RCTResponseSenderBlock)successCallback
                   errorCallback:(RCTResponseSenderBlock)errorCallback) {
 
-  /*AVCaptureWhiteBalanceTemperatureAndTintValues maxWhiteBalanceGains = {
-      .temperature = 10000000,
+  CGFloat maxColorTemperatureHardcodedValue = 10000.0f;
+  AVCaptureWhiteBalanceTemperatureAndTintValues maxWhiteBalanceGains = {
+      .temperature = maxColorTemperatureHardcodedValue,
       .tint = 0,
-  };*/
+  };
   AVCaptureWhiteBalanceTemperatureAndTintValues minWhiteBalanceGains = {
       .temperature = 0,
       .tint = 0,
   };
 
-  // AVCaptureWhiteBalanceGains maxWhiteBalanceGainsNormalized = [self normalizedGains:[self.videoCaptureDevice deviceWhiteBalanceGainsForTemperatureAndTintValues:maxWhiteBalanceGains]];
+  AVCaptureWhiteBalanceGains maxWhiteBalanceGainsNormalized = [self normalizedGains:[self.videoCaptureDevice deviceWhiteBalanceGainsForTemperatureAndTintValues:maxWhiteBalanceGains]];
   AVCaptureWhiteBalanceGains minWhiteBalanceGainsNormalized = [self normalizedGains:[self.videoCaptureDevice deviceWhiteBalanceGainsForTemperatureAndTintValues:minWhiteBalanceGains]];
 
-  // AVCaptureWhiteBalanceTemperatureAndTintValues maxColorTempAndTint = [self.videoCaptureDevice temperatureAndTintValuesForDeviceWhiteBalanceGains:maxWhiteBalanceGainsNormalized];
+  AVCaptureWhiteBalanceTemperatureAndTintValues maxColorTempAndTint = [self.videoCaptureDevice temperatureAndTintValuesForDeviceWhiteBalanceGains:maxWhiteBalanceGainsNormalized];
   AVCaptureWhiteBalanceTemperatureAndTintValues minColorTempAndTint = [self.videoCaptureDevice temperatureAndTintValuesForDeviceWhiteBalanceGains:minWhiteBalanceGainsNormalized];
 
   CGFloat exposureDefaultValue = (abs(self.videoCaptureDevice.maxExposureTargetBias) - abs(self.videoCaptureDevice.minExposureTargetBias)) / 2;
 
-  CGFloat maxColorTemperatureValue = 10000.0f; // maxColorTempAndTint.temperature;
+  CGFloat maxColorTemperatureRawValue = maxColorTempAndTint.temperature;
+  if (maxColorTemperatureRawValue < maxColorTemperatureHardcodedValue) {
+    maxColorTemperatureRawValue = ceil(maxColorTemperatureRawValue / 100.0f);
+  } else {
+    maxColorTemperatureRawValue = floor(maxColorTemperatureRawValue / 100.0f);
+  }
+
+  CGFloat maxColorTemperatureValue = roundf(maxColorTemperatureRawValue) * 100;
   CGFloat minColorTemperatureValue = roundf(ceil(minColorTempAndTint.temperature / 100.0f)) * 100;
   CGFloat colorTemperatureDefaultValue = roundf(ceil((maxColorTemperatureValue - ((maxColorTemperatureValue - minColorTemperatureValue) / 2)) / 100.0f)) * 100;
 
