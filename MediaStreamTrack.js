@@ -71,14 +71,14 @@ export default class MediaStreamTrack extends EventTarget(MEDIA_STREAM_TRACK_EVE
   }
 
   static setZoom(zoomLevel) {
-    WebRTCModule.setZoom(zoomLevel === null ? 1 : zoomLevel);
+    WebRTCModule.setZoom(zoomLevel === null ? 1 : parseFloat(zoomLevel));
   }
 
   static setExposure(exposure) {
     if (exposure === null) {
       WebRTCModule.resetExposure();
     } else {
-      WebRTCModule.setExposure(exposure);
+      WebRTCModule.setExposure(parseFloat(exposure));
     }
   }
 
@@ -86,7 +86,7 @@ export default class MediaStreamTrack extends EventTarget(MEDIA_STREAM_TRACK_EVE
     if (temperature === null) {
       WebRTCModule.resetColorTemperature();
     } else {
-      WebRTCModule.setColorTemperature(temperature);
+      WebRTCModule.setColorTemperature(parseFloat(temperature));
     }
   }
 
