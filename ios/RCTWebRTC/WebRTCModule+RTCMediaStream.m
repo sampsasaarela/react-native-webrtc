@@ -125,7 +125,7 @@ RCT_EXPORT_METHOD(resetExposure) {
   });
 }
 
-RCT_EXPORT_METHOD(setColorTemperature:(CGFloat)temperature) {
+RCT_EXPORT_METHOD(setColorTemperature:(CGFloat)temperature tint:(CGFloat)tint) {
   if (isnan(temperature)) {
       return;
   }
@@ -135,7 +135,7 @@ RCT_EXPORT_METHOD(setColorTemperature:(CGFloat)temperature) {
     if ([self.videoCaptureDevice lockForConfiguration:&error]) {
       AVCaptureWhiteBalanceTemperatureAndTintValues gains = {
           .temperature = temperature,
-          .tint = 0,
+          .tint = tint,
       };
 
       AVCaptureWhiteBalanceGains normalizedGains = [self normalizedGains:[self.videoCaptureDevice deviceWhiteBalanceGainsForTemperatureAndTintValues:gains]];
@@ -208,6 +208,11 @@ RCT_EXPORT_METHOD(fetchMinAndMaxValues:(RCTResponseSenderBlock)successCallback
       @"minimumValue" : @(minColorTemperatureValue),
       @"maximumValue" : @(maxColorTemperatureValue),
       @"defaultValue" : @(colorTemperatureDefaultValue)
+    },
+    @"tint" : @{
+      @"minimumValue" : @-150,
+      @"maximumValue" : @150,
+      @"defaultValue" : @0
     }
   };
 

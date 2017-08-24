@@ -82,11 +82,11 @@ export default class MediaStreamTrack extends EventTarget(MEDIA_STREAM_TRACK_EVE
     }
   }
 
-  static setColorTemperature(temperature) {
+  static setColorTemperature(temperature, tint = 0) {
     if (temperature === null) {
       WebRTCModule.resetColorTemperature();
     } else {
-      WebRTCModule.setColorTemperature(parseFloat(temperature));
+      WebRTCModule.setColorTemperature(parseFloat(temperature), parseFloat(tint));
     }
   }
 
