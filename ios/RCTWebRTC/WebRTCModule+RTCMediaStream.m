@@ -713,8 +713,7 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
                 [self.videoCaptureSession addOutput:stillImageOutput];
 
                 dispatch_async(self.sessionQueue, ^{
-                  [self setCaptureQuality:AVCaptureSessionPresetLow];
-                  // [self setCaptureQuality:AVCaptureSessionPresetPhoto];
+                  [self setCaptureQuality:AVCaptureSessionPresetPhoto];
                 });
 
                 successCallback(mediaStream);
