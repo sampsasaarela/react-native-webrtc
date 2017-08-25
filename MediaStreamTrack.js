@@ -70,6 +70,15 @@ export default class MediaStreamTrack extends EventTarget(MEDIA_STREAM_TRACK_EVE
       WebRTCModule.takePicture(nativeOptions, success, error);
   }
 
+  static setCameraSettings(settings) {
+    Object.keys(settings).forEach((key) => {
+      if (settings[key] === null) {
+        delete settings[key];
+      }
+    });
+    WebRTCModule.setCameraSettings(settings);
+  }
+
   static setZoom(zoomLevel) {
     WebRTCModule.setZoom(zoomLevel === null ? 1 : parseFloat(zoomLevel));
   }

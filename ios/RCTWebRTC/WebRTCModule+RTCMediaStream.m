@@ -160,6 +160,39 @@ RCT_EXPORT_METHOD(resetColorTemperature) {
   });
 }
 
+RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings) {
+  NSError *error = nil;
+
+  CGFloat zoomLevel = settings[@"zoomLevel"] != nil ? [[settings valueForKey:@"zoomLevel"] floatValue] : 1.0f;
+  CGFloat tint = settings[@"tint"] != nil ? [[settings valueForKey:@"tint"] floatValue] : 0.0f;
+  CGFloat exposure = settings[@"exposure"] != nil ? [[settings valueForKey:@"exposure"] floatValue] : nanf(NULL);
+  CGFloat colorTemperature = settings[@"colorTemperature"] != nil ? [[settings valueForKey:@"colorTemperature"] floatValue] : nanf(NULL);
+
+  if ([self.videoCaptureDevice lockForConfiguration:&error]) {
+    self.videoCaptureDevice.videoZoomFactor = zoomLevel;
+    if (isnan(colorTemperature)) {
+      self.videoCaptureDevice.whiteBalanceMode = AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance;
+    } else {
+      AVCaptureWhiteBalanceTemperatureAndTintValues gains = {
+          .temperature = colorTemperature,
+          .tint = tint,
+      };
+
+      AVCaptureWhiteBalanceGains normalizedGains = [self normalizedGains:[self.videoCaptureDevice deviceWhiteBalanceGainsForTemperatureAndTintValues:gains]];
+      [self.videoCaptureDevice setWhiteBalanceModeLockedWithDeviceWhiteBalanceGains:normalizedGains completionHandler:nil];
+    }
+    if (isnan(exposure)) {
+      [self.videoCaptureDevice setExposureTargetBias:0 completionHandler:nil];
+      self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
+    } else {
+      self.videoCaptureDevice.exposureMode = AVCaptureExposureModeLocked;
+      [self.videoCaptureDevice setExposureTargetBias:exposure completionHandler:nil];
+    }
+    [self.videoCaptureDevice unlockForConfiguration];
+  } else {
+      NSLog(@"error: %@", error);
+  }
+}
 
 RCT_EXPORT_METHOD(fetchMinAndMaxValues:(RCTResponseSenderBlock)successCallback
                   errorCallback:(RCTResponseSenderBlock)errorCallback) {
