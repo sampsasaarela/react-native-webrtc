@@ -226,7 +226,8 @@ RCT_EXPORT_METHOD(takePicture:(NSDictionary *)options
     NSInteger captureTarget = [[options valueForKey:@"captureTarget"] intValue];
     NSInteger maxSize = [[options valueForKey:@"maxSize"] intValue];
     CGFloat jpegQuality = [[options valueForKey:@"maxJpegQuality"] floatValue];
-
+    AVCaptureVideoOrientation orientation = options[@"orientation"] != nil ? [options[@"orientation"] integerValue] : 0;
+    bool fixOrientation = true;
 
     if(jpegQuality < 0) {
         jpegQuality = 0;
@@ -261,6 +262,9 @@ RCT_EXPORT_METHOD(takePicture:(NSDictionary *)options
             NSData *imageData = UIImageJPEGRepresentation(image, 1.0);
             [self saveImage:imageData target:captureTarget metadata:nil success:successCallback error:errorCallback];
       #else
+        if (orientation) {
+          [[stillImageOutput connectionWithMediaType:AVMediaTypeVideo] setVideoOrientation:orientation];
+        }
         [stillImageOutput captureStillImageAsynchronouslyFromConnection:[stillImageOutput connectionWithMediaType:AVMediaTypeVideo] completionHandler:^(CMSampleBufferRef imageDataSampleBuffer, NSError *error) {
 
             if (imageDataSampleBuffer) {
@@ -268,55 +272,56 @@ RCT_EXPORT_METHOD(takePicture:(NSDictionary *)options
 
                 // Create image source
                 CGImageSourceRef source = CGImageSourceCreateWithData((CFDataRef)imageData, NULL);
+
                 // Get all the metadata in the image
                 NSMutableDictionary *imageMetadata = [(NSDictionary *) CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, NULL)) mutableCopy];
 
                 // Create cgimage
-                CGImageRef CGImage = CGImageSourceCreateImageAtIndex(source, 0, NULL);
+                CGImageRef cgImage = CGImageSourceCreateImageAtIndex(source, 0, NULL);
 
                 // Rotate it
                 CGImageRef rotatedCGImage;
 
-                // Get metadata orientation
-                int metadataOrientation = [[imageMetadata objectForKey:(NSString *)kCGImagePropertyOrientation] intValue];
+                if (fixOrientation) {
+                  // Get metadata orientation
+                  int metadataOrientation = [[imageMetadata objectForKey:(NSString *)kCGImagePropertyOrientation] intValue];
 
-                if (metadataOrientation == 6) {
-                    rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:270];
-                } else if (metadataOrientation == 1) {
-                    rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:0];
-                } else if (metadataOrientation == 3) {
-                    rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:180];
+                  bool rotated = false;
+                  //see http://www.impulseadventure.com/photo/exif-orientation.html
+                  if (metadataOrientation == 6) {
+                    rotatedCGImage = [self newCGImageRotatedByAngle:cgImage angle:270];
+                    rotated = true;
+                  } else if (metadataOrientation == 3) {
+                    rotatedCGImage = [self newCGImageRotatedByAngle:cgImage angle:180];
+                    rotated = true;
+                  } else {
+                    rotatedCGImage = cgImage;
+                  }
+
+                  if(rotated) {
+                    [imageMetadata setObject:[NSNumber numberWithInteger:1] forKey:(NSString *)kCGImagePropertyOrientation];
+                    CGImageRelease(cgImage);
+                  }
                 } else {
-                    rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:0];
+                  rotatedCGImage = cgImage;
                 }
 
-                CGImageRelease(CGImage);
-
-                // Erase metadata orientation
-                [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyOrientation];
                 // Erase stupid TIFF stuff
                 [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
 
-
                 // Create destination thing
                 NSMutableData *rotatedImageData = [NSMutableData data];
-                CGImageDestinationRef destinationRef = CGImageDestinationCreateWithData((CFMutableDataRef)rotatedImageData, CGImageSourceGetType(source), 1, NULL);
+                CGImageDestinationRef destination = CGImageDestinationCreateWithData((CFMutableDataRef)rotatedImageData, CGImageSourceGetType(source), 1, NULL);
                 CFRelease(source);
-
-                // Set compression
-                NSDictionary *properties = @{(__bridge NSString *)kCGImageDestinationLossyCompressionQuality: @(jpegQuality)};
-                CGImageDestinationSetProperties(destinationRef,
-                                                (__bridge CFDictionaryRef)properties);
-
-                // Add the image to the destination, reattaching metadata
-                CGImageDestinationAddImage(destinationRef, rotatedCGImage, (CFDictionaryRef) imageMetadata);
-
+                // add the image to the destination, reattaching metadata
+                CGImageDestinationAddImage(destination, rotatedCGImage, (CFDictionaryRef) imageMetadata);
                 // And write
-                CGImageDestinationFinalize(destinationRef);
-                CFRelease(destinationRef);
-
+                CGImageDestinationFinalize(destination);
+                CFRelease(destination);
 
                 [self saveImage:rotatedImageData target:captureTarget metadata:imageMetadata success:successCallback error:errorCallback];
+
+                CGImageRelease(rotatedCGImage);
             }
             else {
                 errorCallback(@[error.description]);
@@ -708,7 +713,8 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
                 [self.videoCaptureSession addOutput:stillImageOutput];
 
                 dispatch_async(self.sessionQueue, ^{
-                  [self setCaptureQuality:AVCaptureSessionPresetPhoto];
+                  [self setCaptureQuality:AVCaptureSessionPresetLow];
+                  // [self setCaptureQuality:AVCaptureSessionPresetPhoto];
                 });
 
                 successCallback(mediaStream);
