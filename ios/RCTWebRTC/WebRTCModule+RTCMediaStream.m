@@ -102,7 +102,7 @@ RCT_EXPORT_METHOD(setExposure:(CGFloat)exposure) {
     NSError *error = nil;
 
     if ([self.videoCaptureDevice lockForConfiguration:&error]) {
-        self.videoCaptureDevice.exposureMode = AVCaptureExposureModeLocked;
+        self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
         [self.videoCaptureDevice setExposureTargetBias:exposure completionHandler:nil];
         [self.videoCaptureDevice unlockForConfiguration];
     } else {
@@ -185,7 +185,7 @@ RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings) {
       [self.videoCaptureDevice setExposureTargetBias:0 completionHandler:nil];
       self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
     } else {
-      self.videoCaptureDevice.exposureMode = AVCaptureExposureModeLocked;
+      self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
       [self.videoCaptureDevice setExposureTargetBias:exposure completionHandler:nil];
     }
     [self.videoCaptureDevice unlockForConfiguration];
