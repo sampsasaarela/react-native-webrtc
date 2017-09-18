@@ -167,6 +167,7 @@ RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings) {
   CGFloat tint = settings[@"tint"] != nil ? [[settings valueForKey:@"tint"] floatValue] : 0.0f;
   CGFloat exposure = settings[@"exposure"] != nil ? [[settings valueForKey:@"exposure"] floatValue] : nanf(NULL);
   CGFloat colorTemperature = settings[@"colorTemperature"] != nil ? [[settings valueForKey:@"colorTemperature"] floatValue] : nanf(NULL);
+  int photoQuality = settings[@"photoQuality"] != nil ? [[settings valueForKey:@"photoQuality"] intValue] : NULL;
 
   if ([self.videoCaptureDevice lockForConfiguration:&error]) {
     self.videoCaptureDevice.videoZoomFactor = zoomLevel;
@@ -188,7 +189,11 @@ RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings) {
       self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
       [self.videoCaptureDevice setExposureTargetBias:exposure completionHandler:nil];
     }
+
     [self.videoCaptureDevice unlockForConfiguration];
+
+    // NSLog(@"KingdamApp Native: photoQuality %d", photoQuality);
+    [self setCaptureQuality:photoQuality];
   } else {
       NSLog(@"error: %@", error);
   }
@@ -735,7 +740,7 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
 
             // setup output for still image
             stillImageOutput = [[AVCaptureStillImageOutput alloc] init];
-            [stillImageOutput setHighResolutionStillImageOutputEnabled:true];
+            [stillImageOutput setHighResolutionStillImageOutputEnabled:false];
 
             NSDictionary *outputSettings = @{ AVVideoCodecKey : AVVideoCodecJPEG};
 
@@ -745,9 +750,7 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
             {
                 [self.videoCaptureSession addOutput:stillImageOutput];
 
-                dispatch_async(self.sessionQueue, ^{
-                  [self setCaptureQuality:AVCaptureSessionPresetPhoto];
-                });
+                [self setCaptureQuality:3];
 
                 successCallback(mediaStream);
                 // TODO: error message
@@ -763,15 +766,39 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
   }
 }
 
-- (void)setCaptureQuality:(NSString *)quality
+RCT_EXPORT_METHOD(setCaptureQuality:(int)quality)
 {
-    if (quality) {
-        [self.videoCaptureSession beginConfiguration];
-        if ([self.videoCaptureSession canSetSessionPreset:quality]) {
-            self.videoCaptureSession.sessionPreset = quality;
-        }
-        [self.videoCaptureSession commitConfiguration];
+  dispatch_async(self.sessionQueue, ^{
+    NSString *preset = AVCaptureSessionPresetPhoto;
+    switch(quality) {
+      case 0:
+        preset = AVCaptureSessionPresetLow;
+        // NSLog(@"KingdamApp native : AVCaptureSessionPresetLow");
+        break;
+      case 1:
+        // NSLog(@"KingdamApp native : AVCaptureSessionPresetMedium");
+        preset = AVCaptureSessionPresetMedium;
+        break;
+      case 2:
+        // NSLog(@"KingdamApp native : AVCaptureSessionPresetHigh");
+        preset = AVCaptureSessionPresetHigh;
+        break;
+      case 3:
+      default:
+        // NSLog(@"KingdamApp native : AVCaptureSessionPresetPhoto");
+        preset = AVCaptureSessionPresetPhoto;
+        break;
     }
+
+    [self.videoCaptureSession beginConfiguration];
+    if ([self.videoCaptureSession canSetSessionPreset:preset]) {
+      // NSLog(@"KingdamApp native : sessionPreset %d", preset);
+      [self.videoCaptureSession setSessionPreset:preset];
+
+      [stillImageOutput setHighResolutionStillImageOutputEnabled:preset == AVCaptureSessionPresetPhoto];
+    }
+    [self.videoCaptureSession commitConfiguration];
+  });
 }
 
 RCT_EXPORT_METHOD(mediaStreamRelease:(nonnull NSString *)streamID)
