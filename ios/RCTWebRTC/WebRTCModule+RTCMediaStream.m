@@ -815,6 +815,9 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
               [self.videoCaptureSession addOutput:metadataOutput];
               [metadataOutput setMetadataObjectTypes:[self getRuntimeBarCodeTypes]];
               self.metadataOutput = metadataOutput;
+            } else {
+                            // TODO: error message
+                            //erroCallback();
             }
         } else {
     // According to step 6.2.3 of the getUserMedia() algorithm, if there is no
