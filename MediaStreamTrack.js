@@ -80,7 +80,7 @@ export default class MediaStreamTrack extends EventTarget(MEDIA_STREAM_TRACK_EVE
   }
 
   static setCaptureQuality(quality) {
-    WebRTCModule.setCaptureQuality(quality === null ? 3 : parseInt(quality, 10));
+    WebRTCModule.setCaptureQualityAsync(quality === null ? 3 : parseInt(quality, 10));
   }
 
   static setZoom(zoomLevel) {

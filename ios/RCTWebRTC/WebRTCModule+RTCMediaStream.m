@@ -184,6 +184,8 @@ RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings
     int captureQuality = settings[@"captureQuality"] != nil ? [[settings valueForKey:@"captureQuality"] intValue] : NULL;
 
     if ([self.videoCaptureDevice lockForConfiguration:&error]) {
+      [self setCaptureQuality:captureQuality];
+
       self.videoCaptureDevice.videoZoomFactor = zoomLevel;
       // NSLog(@"KingdamApp:Native:setVideoZoomFactor: %f", zoomLevel);
 
@@ -208,8 +210,6 @@ RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings
 
       [self.videoCaptureDevice unlockForConfiguration];
 
-      // NSLog(@"KingdamApp Native: captureQuality %d", captureQuality);
-      [self setCaptureQuality:captureQuality];
       resolve(@(true));
     } else {
         NSLog(@"KingdamApp:Native:error: %@", error);
@@ -799,7 +799,7 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
             {
                 [self.videoCaptureSession addOutput:stillImageOutput];
 
-                [self setCaptureQuality:3];
+                [self setCaptureQualityAsync:3];
 
                 successCallback(mediaStream);
                 // TODO: error message
@@ -828,36 +828,43 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
 
 RCT_EXPORT_METHOD(setCaptureQuality:(int)quality)
 {
+  NSString *preset = AVCaptureSessionPresetPhoto;
+  switch(quality) {
+    case 0:
+      preset = AVCaptureSessionPresetLow;
+      // NSLog(@"KingdamApp native : AVCaptureSessionPresetLow");
+      break;
+    case 1:
+      // NSLog(@"KingdamApp native : AVCaptureSessionPresetMedium");
+      preset = AVCaptureSessionPresetMedium;
+      break;
+    case 2:
+      // NSLog(@"KingdamApp native : AVCaptureSessionPresetHigh");
+      preset = AVCaptureSessionPresetHigh;
+      break;
+    case 3:
+    default:
+      // NSLog(@"KingdamApp native : AVCaptureSessionPresetPhoto");
+      preset = AVCaptureSessionPresetPhoto;
+      break;
+  }
+
+  [self.videoCaptureSession beginConfiguration];
+  if ([self.videoCaptureSession canSetSessionPreset:preset]) {
+    // NSLog(@"KingdamApp native : sessionPreset %@ : %d", preset, quality);
+    [self.videoCaptureSession setSessionPreset:preset];
+
+    [stillImageOutput setHighResolutionStillImageOutputEnabled:preset == AVCaptureSessionPresetPhoto];
+  }
+  [self.videoCaptureSession commitConfiguration];
+}
+
+RCT_EXPORT_METHOD(setCaptureQualityAsync:(int)quality)
+{
   dispatch_async(self.sessionQueue, ^{
-    NSString *preset = AVCaptureSessionPresetPhoto;
-    switch(quality) {
-      case 0:
-        preset = AVCaptureSessionPresetLow;
-        // NSLog(@"KingdamApp native : AVCaptureSessionPresetLow");
-        break;
-      case 1:
-        // NSLog(@"KingdamApp native : AVCaptureSessionPresetMedium");
-        preset = AVCaptureSessionPresetMedium;
-        break;
-      case 2:
-        // NSLog(@"KingdamApp native : AVCaptureSessionPresetHigh");
-        preset = AVCaptureSessionPresetHigh;
-        break;
-      case 3:
-      default:
-        // NSLog(@"KingdamApp native : AVCaptureSessionPresetPhoto");
-        preset = AVCaptureSessionPresetPhoto;
-        break;
-    }
-
-    [self.videoCaptureSession beginConfiguration];
-    if ([self.videoCaptureSession canSetSessionPreset:preset]) {
-      // NSLog(@"KingdamApp native : sessionPreset %d", preset);
-      [self.videoCaptureSession setSessionPreset:preset];
-
-      [stillImageOutput setHighResolutionStillImageOutputEnabled:preset == AVCaptureSessionPresetPhoto];
-    }
-    [self.videoCaptureSession commitConfiguration];
+    CGFloat zoomFactor = self.videoCaptureDevice.videoZoomFactor;
+    [self setCaptureQuality:quality];
+    [self setZoom:zoomFactor]; // set factor back original
   });
 }
 
