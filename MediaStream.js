@@ -1,6 +1,6 @@
 'use strict';
 
-import {NativeModules} from 'react-native';
+import {NativeModules, NativeAppEventEmitter, DeviceEventEmitter, Platform} from 'react-native';
 import EventTarget from 'event-target-shim';
 import MediaStreamTrackEvent from './MediaStreamTrackEvent';
 
@@ -46,6 +46,22 @@ export default class MediaStream extends EventTarget(MEDIA_STREAM_EVENTS) {
     this.reactTag = (typeof reactTag === 'undefined') ? id : reactTag;
   }
 
+  setBarcodeListener(listener = null) {
+    if (!listener) {
+      if (this.cameraBarCodeReadListener) {
+        this.cameraBarCodeReadListener.remove();
+      }
+      WebRTCModule.disableBarcodeScanner();
+      return;
+    }
+
+    this.cameraBarCodeReadListener = Platform.select({
+      ios: NativeAppEventEmitter.addListener('CameraBarCodeRead', listener),
+      android: DeviceEventEmitter.addListener('CameraBarCodeReadAndroid',  listener)
+    })
+    WebRTCModule.enableBarcodeScanner();
+  }
+
   addTrack(track: MediaStreamTrack) {
     this._tracks.push(track);
     this.dispatchEvent(new MediaStreamTrackEvent('addtrack', {track}));
@@ -86,6 +102,7 @@ export default class MediaStream extends EventTarget(MEDIA_STREAM_EVENTS) {
   }
 
   release() {
+    this.setBarcodeListener(null);
     WebRTCModule.mediaStreamRelease(this.reactTag);
   }
 }

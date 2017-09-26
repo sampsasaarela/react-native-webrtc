@@ -8,6 +8,8 @@
 #import <objc/runtime.h>
 #import <sys/utsname.h>
 
+#import <React/RCTEventDispatcher.h>
+
 #import <WebRTC/RTCAVFoundationVideoSource.h>
 #import <WebRTC/RTCVideoTrack.h>
 #import <WebRTC/RTCMediaConstraints.h>
@@ -111,6 +113,14 @@ RCT_EXPORT_METHOD(setExposure:(CGFloat)exposure) {
   });
 }
 
+RCT_EXPORT_METHOD(disableBarcodeScanner) {
+  [self setBarcodeScannerEnabled:NO];
+}
+
+RCT_EXPORT_METHOD(enableBarcodeScanner) {
+  [self setBarcodeScannerEnabled:YES];
+}
+
 RCT_EXPORT_METHOD(resetExposure) {
   dispatch_async(self.sessionQueue, ^{
     NSError *error = nil;
@@ -175,6 +185,8 @@ RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings
 
     if ([self.videoCaptureDevice lockForConfiguration:&error]) {
       self.videoCaptureDevice.videoZoomFactor = zoomLevel;
+      // NSLog(@"KingdamApp:Native:setVideoZoomFactor: %f", zoomLevel);
+
       if (isnan(colorTemperature)) {
         self.videoCaptureDevice.whiteBalanceMode = AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance;
       } else {
@@ -478,6 +490,36 @@ RCT_EXPORT_METHOD(takePicture:(NSDictionary *)options
     return rotatedImage;
 }
 
+- (NSMutableArray *)getRuntimeBarCodeTypes
+{
+  NSMutableArray *runtimeBarcodeTypes = [[NSMutableArray alloc] initWithObjects:
+  AVMetadataObjectTypeUPCECode,
+  AVMetadataObjectTypeCode39Code,
+  AVMetadataObjectTypeCode39Mod43Code,
+  AVMetadataObjectTypeEAN13Code,
+  AVMetadataObjectTypeEAN8Code,
+  AVMetadataObjectTypeCode93Code,
+  AVMetadataObjectTypeCode128Code,
+  AVMetadataObjectTypePDF417Code,
+  AVMetadataObjectTypeQRCode,
+  AVMetadataObjectTypeAztecCode
+  ,nil];
+
+  if (&AVMetadataObjectTypeInterleaved2of5Code != NULL) {
+      [runtimeBarcodeTypes addObject:AVMetadataObjectTypeInterleaved2of5Code];
+  }
+
+  if(&AVMetadataObjectTypeITF14Code != NULL){
+      [runtimeBarcodeTypes addObject:AVMetadataObjectTypeITF14Code];
+  }
+
+  if(&AVMetadataObjectTypeDataMatrixCode != NULL){
+      [runtimeBarcodeTypes addObject:AVMetadataObjectTypeDataMatrixCode];
+  }
+
+  return runtimeBarcodeTypes;
+}
+
 
 /**
  * Initializes a new {@link RTCAudioTrack} which satisfies specific constraints,
@@ -765,6 +807,14 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
             } else {
                             // TODO: error message
                             //erroCallback();
+            }
+
+            AVCaptureMetadataOutput *metadataOutput = [[AVCaptureMetadataOutput alloc] init];
+            if ([self.videoCaptureSession canAddOutput:metadataOutput]) {
+              [metadataOutput setMetadataObjectsDelegate:self queue:self.sessionQueue];
+              [self.videoCaptureSession addOutput:metadataOutput];
+              [metadataOutput setMetadataObjectTypes:[self getRuntimeBarCodeTypes]];
+              self.metadataOutput = metadataOutput;
             }
         } else {
     // According to step 6.2.3 of the getUserMedia() algorithm, if there is no
@@ -1096,6 +1146,37 @@ RCT_EXPORT_METHOD(mediaStreamTrackStop:(nonnull NSString *)trackID)
         }
       });
     }];
+}
+
+- (void)captureOutput:(AVCaptureOutput *)captureOutput didOutputMetadataObjects:(NSArray *)metadataObjects fromConnection:(AVCaptureConnection *)connection {
+  if (![self isBarcodeScannerEnabled]) {
+    return;
+  }
+
+  for (AVMetadataMachineReadableCodeObject *metadata in metadataObjects) {
+
+    // Transform the meta-data coordinates to screen coords
+    // AVMetadataMachineReadableCodeObject *transformed = (AVMetadataMachineReadableCodeObject *)[_previewLayer transformedMetadataObjectForMetadataObject:metadata];
+
+    NSDictionary *event = @{
+      @"type": metadata.type,
+      @"data": metadata.stringValue
+      /*@"bounds": @{
+        @"origin": @{
+          @"x": [NSString stringWithFormat:@"%f", transformed.bounds.origin.x],
+          @"y": [NSString stringWithFormat:@"%f", transformed.bounds.origin.y]
+        },
+        @"size": @{
+          @"height": [NSString stringWithFormat:@"%f", transformed.bounds.size.height],
+          @"width": [NSString stringWithFormat:@"%f", transformed.bounds.size.width],
+        }
+      }*/
+    };
+
+    // NSLog(@"KingdamApp:Native:barcode %@", metadata.type);
+    [self.bridge.eventDispatcher sendAppEventWithName:@"CameraBarCodeRead" body:event];
+
+  }
 }
 
 @end
