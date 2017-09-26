@@ -76,7 +76,7 @@ export default class MediaStreamTrack extends EventTarget(MEDIA_STREAM_TRACK_EVE
         delete settings[key];
       }
     });
-    WebRTCModule.setCameraSettings(settings);
+    return WebRTCModule.setCameraSettings(settings);
   }
 
   static setCaptureQuality(quality) {

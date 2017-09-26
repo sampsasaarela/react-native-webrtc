@@ -160,43 +160,50 @@ RCT_EXPORT_METHOD(resetColorTemperature) {
   });
 }
 
-RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings) {
-  NSError *error = nil;
+RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings
+                           setCameraSettingsResolver:(RCTPromiseResolveBlock)resolve
+                           setCameraSettingsResolveRejecter:(RCTPromiseRejectBlock)reject)
+{
+  dispatch_async(self.sessionQueue, ^{
+    NSError *error = nil;
 
-  CGFloat zoomLevel = settings[@"zoomLevel"] != nil ? [[settings valueForKey:@"zoomLevel"] floatValue] : 1.0f;
-  CGFloat tint = settings[@"tint"] != nil ? [[settings valueForKey:@"tint"] floatValue] : 0.0f;
-  CGFloat exposure = settings[@"exposure"] != nil ? [[settings valueForKey:@"exposure"] floatValue] : nanf(NULL);
-  CGFloat colorTemperature = settings[@"colorTemperature"] != nil ? [[settings valueForKey:@"colorTemperature"] floatValue] : nanf(NULL);
-  int photoQuality = settings[@"photoQuality"] != nil ? [[settings valueForKey:@"photoQuality"] intValue] : NULL;
+    CGFloat zoomLevel = settings[@"zoomLevel"] != nil ? [[settings valueForKey:@"zoomLevel"] floatValue] : 1.0f;
+    CGFloat tint = settings[@"tint"] != nil ? [[settings valueForKey:@"tint"] floatValue] : 0.0f;
+    CGFloat exposure = settings[@"exposure"] != nil ? [[settings valueForKey:@"exposure"] floatValue] : nanf(NULL);
+    CGFloat colorTemperature = settings[@"colorTemperature"] != nil ? [[settings valueForKey:@"colorTemperature"] floatValue] : nanf(NULL);
+    int photoQuality = settings[@"photoQuality"] != nil ? [[settings valueForKey:@"photoQuality"] intValue] : NULL;
 
-  if ([self.videoCaptureDevice lockForConfiguration:&error]) {
-    self.videoCaptureDevice.videoZoomFactor = zoomLevel;
-    if (isnan(colorTemperature)) {
-      self.videoCaptureDevice.whiteBalanceMode = AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance;
+    if ([self.videoCaptureDevice lockForConfiguration:&error]) {
+      self.videoCaptureDevice.videoZoomFactor = zoomLevel;
+      if (isnan(colorTemperature)) {
+        self.videoCaptureDevice.whiteBalanceMode = AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance;
+      } else {
+        AVCaptureWhiteBalanceTemperatureAndTintValues gains = {
+            .temperature = colorTemperature,
+            .tint = tint,
+        };
+
+        AVCaptureWhiteBalanceGains normalizedGains = [self normalizedGains:[self.videoCaptureDevice deviceWhiteBalanceGainsForTemperatureAndTintValues:gains]];
+        [self.videoCaptureDevice setWhiteBalanceModeLockedWithDeviceWhiteBalanceGains:normalizedGains completionHandler:nil];
+      }
+      if (isnan(exposure)) {
+        [self.videoCaptureDevice setExposureTargetBias:0 completionHandler:nil];
+        self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
+      } else {
+        self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
+        [self.videoCaptureDevice setExposureTargetBias:exposure completionHandler:nil];
+      }
+
+      [self.videoCaptureDevice unlockForConfiguration];
+
+      // NSLog(@"KingdamApp Native: photoQuality %d", photoQuality);
+      [self setCaptureQuality:photoQuality];
+      resolve(@(true));
     } else {
-      AVCaptureWhiteBalanceTemperatureAndTintValues gains = {
-          .temperature = colorTemperature,
-          .tint = tint,
-      };
-
-      AVCaptureWhiteBalanceGains normalizedGains = [self normalizedGains:[self.videoCaptureDevice deviceWhiteBalanceGainsForTemperatureAndTintValues:gains]];
-      [self.videoCaptureDevice setWhiteBalanceModeLockedWithDeviceWhiteBalanceGains:normalizedGains completionHandler:nil];
+        NSLog(@"KingdamApp:Native:error: %@", error);
+        reject(@"failed_to_set_camera_settings", @"Failed to set Camera settings", error);
     }
-    if (isnan(exposure)) {
-      [self.videoCaptureDevice setExposureTargetBias:0 completionHandler:nil];
-      self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
-    } else {
-      self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
-      [self.videoCaptureDevice setExposureTargetBias:exposure completionHandler:nil];
-    }
-
-    [self.videoCaptureDevice unlockForConfiguration];
-
-    // NSLog(@"KingdamApp Native: photoQuality %d", photoQuality);
-    [self setCaptureQuality:photoQuality];
-  } else {
-      NSLog(@"error: %@", error);
-  }
+  });
 }
 
 RCT_EXPORT_METHOD(fetchMinAndMaxValues:(RCTResponseSenderBlock)successCallback
