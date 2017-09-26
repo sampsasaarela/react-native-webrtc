@@ -181,7 +181,7 @@ RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings
     CGFloat tint = settings[@"tint"] != nil ? [[settings valueForKey:@"tint"] floatValue] : 0.0f;
     CGFloat exposure = settings[@"exposure"] != nil ? [[settings valueForKey:@"exposure"] floatValue] : nanf(NULL);
     CGFloat colorTemperature = settings[@"colorTemperature"] != nil ? [[settings valueForKey:@"colorTemperature"] floatValue] : nanf(NULL);
-    int photoQuality = settings[@"photoQuality"] != nil ? [[settings valueForKey:@"photoQuality"] intValue] : NULL;
+    int captureQuality = settings[@"captureQuality"] != nil ? [[settings valueForKey:@"captureQuality"] intValue] : NULL;
 
     if ([self.videoCaptureDevice lockForConfiguration:&error]) {
       self.videoCaptureDevice.videoZoomFactor = zoomLevel;
@@ -208,8 +208,8 @@ RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings
 
       [self.videoCaptureDevice unlockForConfiguration];
 
-      // NSLog(@"KingdamApp Native: photoQuality %d", photoQuality);
-      [self setCaptureQuality:photoQuality];
+      // NSLog(@"KingdamApp Native: captureQuality %d", captureQuality);
+      [self setCaptureQuality:captureQuality];
       resolve(@(true));
     } else {
         NSLog(@"KingdamApp:Native:error: %@", error);
