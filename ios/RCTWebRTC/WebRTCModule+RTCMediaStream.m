@@ -257,8 +257,8 @@ RCT_EXPORT_METHOD(fetchMinAndMaxValues:(RCTResponseSenderBlock)successCallback
       @"defaultValue" : @1
     },
     @"exposure" : @{
-      @"minimumValue" : @(self.videoCaptureDevice.minExposureTargetBias),
-      @"maximumValue" : @(self.videoCaptureDevice.maxExposureTargetBias),
+      @"minimumValue" : @(MAX(-4, self.videoCaptureDevice.minExposureTargetBias)),
+      @"maximumValue" : @(MIN(4, self.videoCaptureDevice.maxExposureTargetBias)),
       @"defaultValue" : @(exposureDefaultValue)
     },
     @"colorTemperature" : @{
