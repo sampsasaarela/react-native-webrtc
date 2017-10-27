@@ -61,7 +61,11 @@ export default class MediaStreamTrack extends EventTarget(MEDIA_STREAM_TRACK_EVE
     };
 
   static getSources(success: (sources: Array<SourceInfo>) => void) {
-    WebRTCModule.mediaStreamTrackGetSources(success);
+    const promise = WebRTCModule.mediaStreamTrackGetSources();
+    if (success) {
+      return promise.then(success);
+    }
+    return promise;
   }
 
   // TODO: restrict option values resp. document them

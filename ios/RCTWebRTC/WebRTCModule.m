@@ -12,6 +12,7 @@
 #import <React/RCTUtils.h>
 
 #import "WebRTCModule.h"
+#import "WebRTCModule+RTCPeerConnection.h"
 
 @interface WebRTCModule ()
 
@@ -21,29 +22,8 @@
 
 @synthesize bridge = _bridge;
 
-- (instancetype)init
-{
-  self = [super init];
-  if (self) {
-    _peerConnectionFactory = [RTCPeerConnectionFactory new];
-//    [RTCPeerConnectionFactory initializeSSL];
-
-    _peerConnections = [NSMutableDictionary new];
-    _remoteStreams = [NSMutableDictionary new];
-    _remoteTracks = [NSMutableDictionary new];
-    _localStreams = [NSMutableDictionary new];
-    _localTracks = [NSMutableDictionary new];
-    self.sessionQueue = dispatch_queue_create("webRTCModuleQueue", DISPATCH_QUEUE_SERIAL);
-  }
-  return self;
-}
-
 - (void)dealloc
 {
-  [_remoteTracks removeAllObjects];
-  _remoteTracks = nil;
-  [_remoteStreams removeAllObjects];
-  _remoteStreams = nil;
   [_localTracks removeAllObjects];
   _localTracks = nil;
   [_localStreams removeAllObjects];
@@ -57,6 +37,36 @@
   [_peerConnections removeAllObjects];
 
   _peerConnectionFactory = nil;
+}
+
+- (instancetype)init
+{
+  self = [super init];
+  if (self) {
+    _peerConnectionFactory = [RTCPeerConnectionFactory new];
+//    [RTCPeerConnectionFactory initializeSSL];
+
+    _peerConnections = [NSMutableDictionary new];
+    _localStreams = [NSMutableDictionary new];
+    _localTracks = [NSMutableDictionary new];
+    self.sessionQueue = dispatch_queue_create("webRTCModuleQueue", DISPATCH_QUEUE_SERIAL);
+  }
+  return self;
+}
+
+- (RTCMediaStream*)streamForReactTag:(NSString*)reactTag
+{
+  RTCMediaStream *stream = _localStreams[reactTag];
+  if (!stream) {
+    for (NSNumber *peerConnectionId in _peerConnections) {
+      RTCPeerConnection *peerConnection = _peerConnections[peerConnectionId];
+      stream = peerConnection.remoteStreams[reactTag];
+      if (stream) {
+        break;
+      }
+    }
+  }
+  return stream;
 }
 
 RCT_EXPORT_MODULE();

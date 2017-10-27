@@ -32,5 +32,7 @@
 @property (nonatomic, strong) AVCaptureMetadataOutput *metadataOutput;
 @property (nonatomic, assign, getter=isBarcodeScannerEnabled) BOOL barcodeScannerEnabled;
 
+- (RTCMediaStream*)streamForReactTag:(NSString*)reactTag;
+
 
 @end
