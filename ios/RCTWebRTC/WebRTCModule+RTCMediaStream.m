@@ -9,6 +9,7 @@
 #import <sys/utsname.h>
 
 #import <React/RCTEventDispatcher.h>
+#import <React/RCTImageLoader.h>
 
 #import <WebRTC/RTCAVFoundationVideoSource.h>
 #import <WebRTC/RTCVideoTrack.h>
@@ -282,15 +283,8 @@ RCT_EXPORT_METHOD(takePicture:(NSDictionary *)options
 
     NSInteger captureTarget = [[options valueForKey:@"captureTarget"] intValue];
     NSInteger maxSize = [[options valueForKey:@"maxSize"] intValue];
-    CGFloat jpegQuality = [[options valueForKey:@"maxJpegQuality"] floatValue];
     AVCaptureVideoOrientation orientation = options[@"orientation"] != nil ? [options[@"orientation"] integerValue] : 0;
     bool fixOrientation = true;
-
-    if(jpegQuality < 0) {
-        jpegQuality = 0;
-    } else if(jpegQuality > 1) {
-        jpegQuality = 1;
-    }
 
     dispatch_async(self.sessionQueue, ^{
       #if TARGET_IPHONE_SIMULATOR
@@ -386,6 +380,26 @@ RCT_EXPORT_METHOD(takePicture:(NSDictionary *)options
         }];
       #endif
     });
+}
+
+RCT_EXPORT_METHOD(saveImageToDisk:(NSString *)uri
+                  targetPath:(NSString *)targetPath
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+{
+  NSURLRequest *request = [RCTConvert NSURLRequest:uri];
+  [self.bridge.imageLoader loadImageWithURLRequest:request
+                                    callback:^(NSError *loadError, UIImage *loadedImage) {
+    if (loadError) {
+      reject(@"failed_to_load_image_from_uri", @"Failed to load image from uri", loadError);
+      return;
+    }
+
+    NSData *imageData = UIImageJPEGRepresentation(loadedImage, 1.0);
+    [imageData writeToFile:targetPath atomically:YES];
+
+    resolve(@(true));
+  }];
 }
 
 - (AVCaptureWhiteBalanceGains)normalizedGains:(AVCaptureWhiteBalanceGains)gains

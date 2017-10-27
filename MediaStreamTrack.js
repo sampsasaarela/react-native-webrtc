@@ -79,6 +79,10 @@ export default class MediaStreamTrack extends EventTarget(MEDIA_STREAM_TRACK_EVE
     return WebRTCModule.setCameraSettings(settings);
   }
 
+  static saveImageToDisk(tag, targetPath) {
+    return WebRTCModule.saveImageToDisk(tag, targetPath);
+  }
+
   static setCaptureQuality(quality) {
     WebRTCModule.setCaptureQualityAsync(quality === null ? 3 : parseInt(quality, 10));
   }
