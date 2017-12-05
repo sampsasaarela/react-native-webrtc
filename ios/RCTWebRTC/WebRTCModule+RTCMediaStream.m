@@ -96,6 +96,38 @@ RCT_EXPORT_METHOD(setZoom:(CGFloat)zoomFactor) {
   });
 }
 
+RCT_EXPORT_METHOD(setFocusPoint:(CGPoint)focusPoint) {
+  dispatch_async( self.sessionQueue, ^{
+      AVCaptureDevice *device = self.videoCaptureDevice;
+      AVCaptureFocusMode *focusMode = AVCaptureFocusModeContinuousAutoFocus;
+      AVCaptureExposureMode *exposureMode = AVCaptureExposureModeContinuousAutoExposure;
+
+      NSError *error = nil;
+      if ( [device lockForConfiguration:&error] ) {
+          // Setting (focus/exposure)PointOfInterest alone does not initiate a (focus/exposure) operation.
+          // Call -set(Focus/Exposure)Mode: to apply the new point of interest.
+          if (device.isFocusPointOfInterestSupported && [device isFocusModeSupported:focusMode]) {
+              NSLog(@"KingdamApp current focusPointOfInterest: %@", NSStringFromCGPoint(device.focusPointOfInterest));
+              NSLog(@"KingdamApp focusPointOfInterest: %@", NSStringFromCGPoint(focusPoint));
+              device.focusPointOfInterest = focusPoint;
+              device.focusMode = focusMode;
+          }
+
+          if ( device.isExposurePointOfInterestSupported && [device isExposureModeSupported:exposureMode] ) {
+              NSLog(@"KingdamApp current exposurePointOfInterest: %@", NSStringFromCGPoint(device.exposurePointOfInterest));
+              NSLog(@"KingdamApp exposurePointOfInterest: %@", NSStringFromCGPoint(focusPoint));
+              device.exposurePointOfInterest = focusPoint;
+              device.exposureMode = exposureMode;
+          }
+
+          [device unlockForConfiguration];
+      }
+      else {
+          //NSLog( @"Could not lock device for configuration: %@", error );
+      }
+  } );
+}
+
 RCT_EXPORT_METHOD(setExposure:(CGFloat)exposure) {
   if (isnan(exposure)) {
       return;
@@ -182,6 +214,7 @@ RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings
     CGFloat tint = settings[@"tint"] != nil ? [[settings valueForKey:@"tint"] floatValue] : 0.0f;
     CGFloat exposure = settings[@"exposure"] != nil ? [[settings valueForKey:@"exposure"] floatValue] : nanf(NULL);
     CGFloat colorTemperature = settings[@"colorTemperature"] != nil ? [[settings valueForKey:@"colorTemperature"] floatValue] : nanf(NULL);
+    CGPoint focusPoint = settings[@"focusPoint"] != nil ? [[settings valueForKey:@"focusPoint"] CGPointValue] : CGPointMake(0.5, 0.5);
     int captureQuality = settings[@"captureQuality"] != nil ? [[settings valueForKey:@"captureQuality"] intValue] : NULL;
 
     if ([self.videoCaptureDevice lockForConfiguration:&error]) {
@@ -203,11 +236,15 @@ RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings
       }
       if (isnan(exposure)) {
         [self.videoCaptureDevice setExposureTargetBias:0 completionHandler:nil];
-        self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
       } else {
-        self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
         [self.videoCaptureDevice setExposureTargetBias:exposure completionHandler:nil];
       }
+
+      self.videoCaptureDevice.focusPointOfInterest = focusPoint;
+      self.videoCaptureDevice.exposurePointOfInterest = focusPoint;
+
+      self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
+      self.videoCaptureDevice.focusMode = AVCaptureFocusModeContinuousAutoFocus;
 
       [self.videoCaptureDevice unlockForConfiguration];
 

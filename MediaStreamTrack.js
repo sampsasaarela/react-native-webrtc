@@ -74,6 +74,10 @@ export default class MediaStreamTrack extends EventTarget(MEDIA_STREAM_TRACK_EVE
       WebRTCModule.takePicture(nativeOptions, success, error);
   }
 
+  static setFocusPoint(focusPoint) {
+    WebRTCModule.setFocusPoint(focusPoint || [0.5, 0.5]);
+  }
+
   static setCameraSettings(settings) {
     Object.keys(settings).forEach((key) => {
       if (settings[key] === null) {
