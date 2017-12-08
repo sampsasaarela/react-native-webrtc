@@ -107,15 +107,15 @@ RCT_EXPORT_METHOD(setFocusPoint:(CGPoint)focusPoint) {
           // Setting (focus/exposure)PointOfInterest alone does not initiate a (focus/exposure) operation.
           // Call -set(Focus/Exposure)Mode: to apply the new point of interest.
           if (device.isFocusPointOfInterestSupported && [device isFocusModeSupported:focusMode]) {
-              NSLog(@"KingdamApp current focusPointOfInterest: %@", NSStringFromCGPoint(device.focusPointOfInterest));
-              NSLog(@"KingdamApp focusPointOfInterest: %@", NSStringFromCGPoint(focusPoint));
+              // NSLog(@"KingdamApp current focusPointOfInterest: %@", NSStringFromCGPoint(device.focusPointOfInterest));
+              // NSLog(@"KingdamApp focusPointOfInterest: %@", NSStringFromCGPoint(focusPoint));
               device.focusPointOfInterest = focusPoint;
               device.focusMode = focusMode;
           }
 
           if ( device.isExposurePointOfInterestSupported && [device isExposureModeSupported:exposureMode] ) {
-              NSLog(@"KingdamApp current exposurePointOfInterest: %@", NSStringFromCGPoint(device.exposurePointOfInterest));
-              NSLog(@"KingdamApp exposurePointOfInterest: %@", NSStringFromCGPoint(focusPoint));
+              // NSLog(@"KingdamApp current exposurePointOfInterest: %@", NSStringFromCGPoint(device.exposurePointOfInterest));
+              // NSLog(@"KingdamApp exposurePointOfInterest: %@", NSStringFromCGPoint(focusPoint));
               device.exposurePointOfInterest = focusPoint;
               device.exposureMode = exposureMode;
           }
@@ -308,6 +308,11 @@ RCT_EXPORT_METHOD(fetchMinAndMaxValues:(RCTResponseSenderBlock)successCallback
       @"minimumValue" : @-150,
       @"maximumValue" : @150,
       @"defaultValue" : @0
+    },
+    @"focusPoint" : @{
+      @"minimumValue" : @[@0, @0],
+      @"maximumValue" : @[@1.0, @1.0],
+      @"defaultValue" : @[@0.5, @0.5]
     }
   };
 
