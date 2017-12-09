@@ -96,10 +96,10 @@ RCT_EXPORT_METHOD(setZoom:(CGFloat)zoomFactor) {
   });
 }
 
-RCT_EXPORT_METHOD(setFocusPoint:(CGPoint)focusPoint) {
+RCT_EXPORT_METHOD(setFocusPoint:(CGPoint)focusPoint: (BOOL)lockFocus) {
   dispatch_async( self.sessionQueue, ^{
       AVCaptureDevice *device = self.videoCaptureDevice;
-      AVCaptureFocusMode *focusMode = AVCaptureFocusModeContinuousAutoFocus;
+      AVCaptureFocusMode *focusMode = lockFocus ? AVCaptureFocusModeAutoFocus : AVCaptureFocusModeContinuousAutoFocus;
       AVCaptureExposureMode *exposureMode = AVCaptureExposureModeContinuousAutoExposure;
 
       NSError *error = nil;
@@ -215,6 +215,7 @@ RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings
     CGFloat exposure = settings[@"exposure"] != nil ? [[settings valueForKey:@"exposure"] floatValue] : nanf(NULL);
     CGFloat colorTemperature = settings[@"colorTemperature"] != nil ? [[settings valueForKey:@"colorTemperature"] floatValue] : nanf(NULL);
     CGPoint focusPoint = settings[@"focusPoint"] != nil ? [[settings valueForKey:@"focusPoint"] CGPointValue] : CGPointMake(0.5, 0.5);
+    AVCaptureFocusMode *focusMode = settings[@"focusPoint"] != nil ? AVCaptureFocusModeAutoFocus : AVCaptureFocusModeContinuousAutoFocus;
     int captureQuality = settings[@"captureQuality"] != nil ? [[settings valueForKey:@"captureQuality"] intValue] : NULL;
 
     if ([self.videoCaptureDevice lockForConfiguration:&error]) {
@@ -244,7 +245,7 @@ RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings
       self.videoCaptureDevice.exposurePointOfInterest = focusPoint;
 
       self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
-      self.videoCaptureDevice.focusMode = AVCaptureFocusModeContinuousAutoFocus;
+      self.videoCaptureDevice.focusMode = focusMode;
 
       [self.videoCaptureDevice unlockForConfiguration];
 
