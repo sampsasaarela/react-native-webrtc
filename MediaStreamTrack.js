@@ -92,18 +92,18 @@ export default class MediaStreamTrack extends EventTarget(MEDIA_STREAM_TRACK_EVE
   }
 
   static setCaptureQuality(quality) {
-    WebRTCModule.setCaptureQualityAsync(quality === null ? 3 : parseInt(quality, 10));
+    WebRTCModule.setCaptureQualityAsync(quality === null ? 3 : parseInt(Number(quality), 10));
   }
 
   static setZoom(zoomLevel) {
-    WebRTCModule.setZoom(zoomLevel === null ? 1 : parseFloat(zoomLevel));
+    WebRTCModule.setZoom(zoomLevel === null ? 1 : parseFloat(Number(zoomLevel)));
   }
 
   static setExposure(exposure) {
     if (exposure === null) {
       WebRTCModule.resetExposure();
     } else {
-      WebRTCModule.setExposure(parseFloat(exposure));
+      WebRTCModule.setExposure(parseFloat(Number(exposure)));
     }
   }
 
@@ -111,7 +111,7 @@ export default class MediaStreamTrack extends EventTarget(MEDIA_STREAM_TRACK_EVE
     if (temperature === null) {
       WebRTCModule.resetColorTemperature();
     } else {
-      WebRTCModule.setColorTemperature(parseFloat(temperature), parseFloat(tint));
+      WebRTCModule.setColorTemperature(parseFloat(Number(temperature)), parseFloat(Number(tint)));
     }
   }
 
