@@ -36,6 +36,7 @@
 @implementation WebRTCModule (RTCMediaStream)
 
 AVCaptureStillImageOutput *stillImageOutput;
+RTCAVFoundationVideoSource *videoSource;
 
 /**
  * {@link https://www.w3.org/TR/mediacapture-streams/#navigatorusermediaerrorcallback}
@@ -152,6 +153,22 @@ RCT_EXPORT_METHOD(disableBarcodeScanner) {
 
 RCT_EXPORT_METHOD(enableBarcodeScanner) {
   [self setBarcodeScannerEnabled:YES];
+}
+
+RCT_EXPORT_METHOD(disableOrientationListener) {
+  videoSource.listenOrientationChanges = NO;
+}
+
+RCT_EXPORT_METHOD(enableOrientationListener) {
+  videoSource.listenOrientationChanges = YES;
+}
+
+RCT_EXPORT_METHOD(setOrientation:(NSInteger)orientation) {
+  if (videoSource.listenOrientationChanges) {
+    return;
+  }
+
+  videoSource.orientation = orientation;
 }
 
 RCT_EXPORT_METHOD(resetExposure) {
@@ -818,7 +835,7 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
 
             RTCMediaConstraints *rtcMediaContraints = [[RTCMediaConstraints alloc] initWithMandatoryConstraints:mandatoryConstraints optionalConstraints:nil];
 
-            RTCAVFoundationVideoSource *videoSource = [self.peerConnectionFactory avFoundationVideoSourceWithConstraints:rtcMediaContraints];
+            videoSource = [self.peerConnectionFactory avFoundationVideoSourceWithConstraints:rtcMediaContraints];
     // FIXME The effort above to find a videoDevice value which satisfies the
     // specified constraints was pretty much wasted. Salvage facingMode for
     // starters because it is kind of a common and hence important feature on
@@ -833,7 +850,6 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
       videoSource.useBackCamera = NO;
       break;
     }
-
 
     self.videoCaptureDevice = videoDevice;
 

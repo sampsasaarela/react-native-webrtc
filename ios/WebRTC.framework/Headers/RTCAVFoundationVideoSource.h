@@ -8,6 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#import <UIKit/UIKit.h>
 #import <WebRTC/RTCMacros.h>
 #import <WebRTC/RTCVideoSource.h>
 
@@ -18,6 +19,8 @@
 NS_ASSUME_NONNULL_BEGIN
 
 /**
+ * DEPRECATED Use RTCCameraVideoCapturer instead.
+ *
  * RTCAVFoundationVideoSource is a video source that uses
  * webrtc::AVFoundationVideoCapturer. We do not currently provide a wrapper for
  * that capturer because cricket::VideoCapturer is not ref counted and we cannot
@@ -44,6 +47,12 @@ RTC_EXPORT
 
 /** Switches the camera being used (either front or back). */
 @property(nonatomic, assign) BOOL useBackCamera;
+
+/** Switches the camera orientation listener on and off. */
+@property(nonatomic, assign) BOOL listenOrientationChanges;
+
+/** Switches the camera orientation manually */
+@property(nonatomic, assign) UIDeviceOrientation orientation;
 
 /** Returns the active capture session. */
 @property(nonatomic, readonly) AVCaptureSession *captureSession;

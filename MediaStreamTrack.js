@@ -107,6 +107,13 @@ export default class MediaStreamTrack extends EventTarget(MEDIA_STREAM_TRACK_EVE
     }
   }
 
+  static setOrientation(orientation) {
+    const newOrientation = parseInt(Number(orientation), 10);
+    if (newOrientation) {
+      WebRTCModule.setOrientation(newOrientation);
+    }
+  }
+
   static setColorTemperature(temperature, tint = 0) {
     if (temperature === null) {
       WebRTCModule.resetColorTemperature();

@@ -62,6 +62,14 @@ export default class MediaStream extends EventTarget(MEDIA_STREAM_EVENTS) {
     WebRTCModule.enableBarcodeScanner();
   }
 
+  setListenCameraOrientationChanges(enabled = true) {
+      if (enabled) {
+        WebRTCModule.enableOrientationListener();
+      } else {
+        WebRTCModule.disableOrientationListener();
+      }
+  }
+
   addTrack(track: MediaStreamTrack) {
     this._tracks.push(track);
     this.dispatchEvent(new MediaStreamTrackEvent('addtrack', {track}));
