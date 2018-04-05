@@ -241,9 +241,11 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)",
 				);
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "$(SRCROOT)/RCTWebRTC-Prefix.pch";
 				HEADER_SEARCH_PATHS = (
 					"$(BUILT_PRODUCTS_DIR)/usr/local/include/**",
-					"$(SRCROOT)/../node_modules/react-native/Libraries/Image"
+					"$(SRCROOT)/../node_modules/react-native/Libraries/Image",
 				);
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				OTHER_LDFLAGS = "-ObjC";
@@ -259,9 +261,11 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)",
 				);
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "$(SRCROOT)/RCTWebRTC-Prefix.pch";
 				HEADER_SEARCH_PATHS = (
 					"$(BUILT_PRODUCTS_DIR)/usr/local/include/**",
-					"$(SRCROOT)/../node_modules/react-native/Libraries/Image"
+					"$(SRCROOT)/../node_modules/react-native/Libraries/Image",
 				);
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				OTHER_LDFLAGS = "-ObjC";
