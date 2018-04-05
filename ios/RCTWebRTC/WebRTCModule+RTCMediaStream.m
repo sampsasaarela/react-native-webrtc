@@ -79,21 +79,26 @@ typedef NS_ENUM(NSInteger, RCTCameraCaptureTarget) {
              };
 }
 
-RCT_EXPORT_METHOD(setZoom:(CGFloat)zoomFactor) {
+- (void)setZoomNow:(CGFloat)zoomFactor {
   if (isnan(zoomFactor)) {
       return;
   }
 
-  dispatch_async(self.sessionQueue, ^{
-    NSError *error = nil;
+  NSError *error = nil;
 
-    if ([self.videoCaptureDevice lockForConfiguration:&error]) {
-        // device.videoZoomFactor = zoomFactor;
-        [self.videoCaptureDevice rampToVideoZoomFactor:zoomFactor withRate:10.0];
-        [self.videoCaptureDevice unlockForConfiguration];
-    } else {
-        NSLog(@"error: %@", error);
-    }
+  if ([self.videoCaptureDevice lockForConfiguration:&error]) {
+      NSLog(@"react-native-webrtc component : setZoom %f", zoomFactor);
+      // device.videoZoomFactor = zoomFactor;
+      [self.videoCaptureDevice rampToVideoZoomFactor:zoomFactor withRate:10.0];
+      [self.videoCaptureDevice unlockForConfiguration];
+  } else {
+      NSLog(@"react-native-webrtc component ERROR : %@", error);
+  }
+}
+
+RCT_EXPORT_METHOD(setZoom:(CGFloat)zoomFactor) {
+  dispatch_async(self.sessionQueue, ^{
+    [self setZoomNow:zoomFactor];
   });
 }
 
@@ -108,15 +113,15 @@ RCT_EXPORT_METHOD(setFocusPoint:(CGPoint)focusPoint: (BOOL)lockFocus) {
           // Setting (focus/exposure)PointOfInterest alone does not initiate a (focus/exposure) operation.
           // Call -set(Focus/Exposure)Mode: to apply the new point of interest.
           if (device.isFocusPointOfInterestSupported && [device isFocusModeSupported:focusMode]) {
-              // NSLog(@"KingdamApp current focusPointOfInterest: %@", NSStringFromCGPoint(device.focusPointOfInterest));
-              // NSLog(@"KingdamApp focusPointOfInterest: %@", NSStringFromCGPoint(focusPoint));
+              NSLog(@"react-native-webrtc component : current focusPointOfInterest: %@", NSStringFromCGPoint(device.focusPointOfInterest));
+              NSLog(@"react-native-webrtc component : focusPointOfInterest: %@", NSStringFromCGPoint(focusPoint));
               device.focusPointOfInterest = focusPoint;
               device.focusMode = focusMode;
           }
 
           if ( device.isExposurePointOfInterestSupported && [device isExposureModeSupported:exposureMode] ) {
-              // NSLog(@"KingdamApp current exposurePointOfInterest: %@", NSStringFromCGPoint(device.exposurePointOfInterest));
-              // NSLog(@"KingdamApp exposurePointOfInterest: %@", NSStringFromCGPoint(focusPoint));
+              NSLog(@"react-native-webrtc component : current exposurePointOfInterest: %@", NSStringFromCGPoint(device.exposurePointOfInterest));
+              NSLog(@"react-native-webrtc component : exposurePointOfInterest: %@", NSStringFromCGPoint(focusPoint));
               device.exposurePointOfInterest = focusPoint;
               device.exposureMode = exposureMode;
           }
@@ -124,7 +129,7 @@ RCT_EXPORT_METHOD(setFocusPoint:(CGPoint)focusPoint: (BOOL)lockFocus) {
           [device unlockForConfiguration];
       }
       else {
-          //NSLog( @"Could not lock device for configuration: %@", error );
+          NSLog(@"react-native-webrtc component : Could not lock device for configuration: %@", error );
       }
   } );
 }
@@ -142,7 +147,7 @@ RCT_EXPORT_METHOD(setExposure:(CGFloat)exposure) {
         [self.videoCaptureDevice setExposureTargetBias:exposure completionHandler:nil];
         [self.videoCaptureDevice unlockForConfiguration];
     } else {
-        NSLog(@"error: %@", error);
+        NSLog(@"react-native-webrtc component ERROR : %@", error);
     }
   });
 }
@@ -180,7 +185,7 @@ RCT_EXPORT_METHOD(resetExposure) {
         self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
         [self.videoCaptureDevice unlockForConfiguration];
     } else {
-        NSLog(@"error: %@", error);
+        NSLog(@"react-native-webrtc component ERROR : %@", error);
     }
   });
 }
@@ -202,7 +207,7 @@ RCT_EXPORT_METHOD(setColorTemperature:(CGFloat)temperature tint:(CGFloat)tint) {
       [self.videoCaptureDevice setWhiteBalanceModeLockedWithDeviceWhiteBalanceGains:normalizedGains completionHandler:nil];
       [self.videoCaptureDevice unlockForConfiguration];
     } else {
-        NSLog(@"error: %@", error);
+        NSLog(@"react-native-webrtc component ERROR : %@", error);
     }
   });
 }
@@ -215,7 +220,7 @@ RCT_EXPORT_METHOD(resetColorTemperature) {
       self.videoCaptureDevice.whiteBalanceMode = AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance;
       [self.videoCaptureDevice unlockForConfiguration];
     } else {
-        NSLog(@"error: %@", error);
+        NSLog(@"react-native-webrtc component ERROR : %@", error);
     }
   });
 }
@@ -236,10 +241,11 @@ RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings
     int captureQuality = settings[@"captureQuality"] != nil ? [[settings valueForKey:@"captureQuality"] intValue] : NULL;
 
     if ([self.videoCaptureDevice lockForConfiguration:&error]) {
-      [self setCaptureQuality:captureQuality];
+      [self.videoCaptureSession beginConfiguration];
+      [self setCaptureQuality:captureQuality requireCommit:false];
 
       self.videoCaptureDevice.videoZoomFactor = zoomLevel;
-      // NSLog(@"KingdamApp:Native:setVideoZoomFactor: %f", zoomLevel);
+      NSLog(@"react-native-webrtc component : setVideoZoomFactor: %f", zoomLevel);
 
       if (isnan(colorTemperature)) {
         self.videoCaptureDevice.whiteBalanceMode = AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance;
@@ -264,11 +270,13 @@ RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings
       self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
       self.videoCaptureDevice.focusMode = focusMode;
 
+      [self.videoCaptureSession commitConfiguration];
       [self.videoCaptureDevice unlockForConfiguration];
 
+      NSLog(@"react-native-webrtc component : cameraSettings updated");
       resolve(@(true));
     } else {
-        NSLog(@"KingdamApp:Native:error: %@", error);
+        NSLog(@"react-native-webrtc component ERROR : %@", error);
         reject(@"failed_to_set_camera_settings", @"Failed to set Camera settings", error);
     }
   });
@@ -899,45 +907,52 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
   }
 }
 
-RCT_EXPORT_METHOD(setCaptureQuality:(int)quality)
-{
+- (void)setCaptureQuality:(int)quality requireCommit:(BOOL)requireCommit {
   NSString *preset = AVCaptureSessionPresetPhoto;
   switch(quality) {
     case 0:
       preset = AVCaptureSessionPresetLow;
-      // NSLog(@"KingdamApp native : AVCaptureSessionPresetLow");
+      NSLog(@"react-native-webrtc component : AVCaptureSessionPresetLow");
       break;
     case 1:
-      // NSLog(@"KingdamApp native : AVCaptureSessionPresetMedium");
+      NSLog(@"react-native-webrtc component : AVCaptureSessionPresetMedium");
       preset = AVCaptureSessionPresetMedium;
       break;
     case 2:
-      // NSLog(@"KingdamApp native : AVCaptureSessionPresetHigh");
+      NSLog(@"react-native-webrtc component : AVCaptureSessionPresetHigh");
       preset = AVCaptureSessionPresetHigh;
       break;
     case 3:
     default:
-      // NSLog(@"KingdamApp native : AVCaptureSessionPresetPhoto");
+      NSLog(@"react-native-webrtc component : AVCaptureSessionPresetPhoto");
       preset = AVCaptureSessionPresetPhoto;
       break;
   }
 
-  [self.videoCaptureSession beginConfiguration];
+  if (requireCommit) {
+    [self.videoCaptureSession beginConfiguration];
+  }
   if ([self.videoCaptureSession canSetSessionPreset:preset]) {
-    // NSLog(@"KingdamApp native : sessionPreset %@ : %d", preset, quality);
+    NSLog(@"react-native-webrtc component : sessionPreset %@ : %d", preset, quality);
     [self.videoCaptureSession setSessionPreset:preset];
 
     [stillImageOutput setHighResolutionStillImageOutputEnabled:preset == AVCaptureSessionPresetPhoto];
   }
-  [self.videoCaptureSession commitConfiguration];
+  if (requireCommit) {
+    [self.videoCaptureSession commitConfiguration];
+  }
 }
 
 RCT_EXPORT_METHOD(setCaptureQualityAsync:(int)quality)
 {
   dispatch_async(self.sessionQueue, ^{
     CGFloat zoomFactor = self.videoCaptureDevice.videoZoomFactor;
-    [self setCaptureQuality:quality];
-    [self setZoom:zoomFactor]; // set factor back original
+    NSLog(@"react-native-webrtc component : setCaptureQualityAsync %d", quality);
+    [self setCaptureQuality:quality requireCommit:true];
+    if (zoomFactor > 1) {
+      NSLog(@"react-native-webrtc component : setCaptureQualityAsync::setZoomNow %f", zoomFactor);
+      [self setZoomNow:zoomFactor]; // set factor back original
+    }
   });
 }
 
@@ -1257,7 +1272,7 @@ RCT_EXPORT_METHOD(mediaStreamTrackStop:(nonnull NSString *)trackID)
       }*/
     };
 
-    // NSLog(@"KingdamApp:Native:barcode %@", metadata.type);
+    NSLog(@"react-native-webrtc component : barcode %@", metadata.type);
     [self.bridge.eventDispatcher sendAppEventWithName:@"CameraBarCodeRead" body:event];
 
   }
