@@ -107,6 +107,18 @@ export default class MediaStreamTrack extends EventTarget(MEDIA_STREAM_TRACK_EVE
     }
   }
 
+  static setExposureCustom(exposureDuration = null, exposureISO = null) {
+    if (exposureDuration === null && exposureISO === null) {
+      WebRTCModule.resetExposure();
+    } else if (exposureDuration === null) {
+      WebRTCModule.setExposureCustomISO(parseFloat(Number(exposureISO)));
+    } else if (exposureISO === null) {
+      WebRTCModule.setExposureCustomDuration(parseFloat(Number(exposureDuration)));
+    } else {
+      WebRTCModule.setExposureCustom(parseFloat(Number(exposureDuration)), parseFloat(Number(exposureISO)));
+    }
+  }
+
   static setOrientation(orientation) {
     const newOrientation = parseInt(Number(orientation), 10);
     if (newOrientation) {

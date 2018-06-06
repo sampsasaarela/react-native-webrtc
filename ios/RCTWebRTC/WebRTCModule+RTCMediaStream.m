@@ -152,6 +152,50 @@ RCT_EXPORT_METHOD(setExposure:(CGFloat)exposure) {
   });
 }
 
+RCT_EXPORT_METHOD(setExposureCustomDuration:(CGFloat)exposureDurationSec) {
+  if (isnan(exposureDurationSec)) {
+      return;
+  }
+
+  CMTime exposureDuration = [self getExposureDurationFromSeconds:exposureDurationSec];
+  [self setExposureCustomValues:exposureDuration exposureISO:AVCaptureISOCurrent];
+}
+
+RCT_EXPORT_METHOD(setExposureCustomISO:(CGFloat)exposureISO) {
+  if (isnan(exposureISO)) {
+      return;
+  }
+
+  [self setExposureCustomValues:AVCaptureExposureDurationCurrent exposureISO:exposureISO];
+}
+
+RCT_EXPORT_METHOD(setExposureCustom:(CGFloat)exposureDurationSec exposureISO:(CGFloat)exposureISO) {
+  if (isnan(exposureDurationSec) || isnan(exposureISO)) {
+      return;
+  }
+
+  CMTime exposureDuration = [self getExposureDurationFromSeconds:exposureDurationSec];
+  [self setExposureCustomValues:exposureDuration exposureISO:exposureISO];
+}
+
+- (CMTime)getExposureDurationFromSeconds:(CGFloat)exposureDurationSec {
+  CMTime exposureDuration = CMTimeMakeWithSeconds(exposureDurationSec, 1000*1000*1000);
+  return exposureDuration;
+}
+
+- (void)setExposureCustomValues:(CMTime)exposureDuration exposureISO:(CGFloat)exposureISO {
+  dispatch_async(self.sessionQueue, ^{
+    NSError *error = nil;
+
+    if ([self.videoCaptureDevice lockForConfiguration:&error]) {
+        [self.videoCaptureDevice setExposureModeCustomWithDuration:exposureDuration ISO:exposureISO completionHandler:nil];
+        [self.videoCaptureDevice unlockForConfiguration];
+    } else {
+        NSLog(@"react-native-webrtc component ERROR : %@", error);
+    }
+  });
+}
+
 RCT_EXPORT_METHOD(disableBarcodeScanner) {
   [self setBarcodeScannerEnabled:NO];
 }
@@ -235,6 +279,8 @@ RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings
     CGFloat zoomLevel = settings[@"zoomLevel"] != nil ? [[settings valueForKey:@"zoomLevel"] floatValue] : 1.0f;
     CGFloat tint = settings[@"tint"] != nil ? [[settings valueForKey:@"tint"] floatValue] : 0.0f;
     CGFloat exposure = settings[@"exposure"] != nil ? [[settings valueForKey:@"exposure"] floatValue] : nanf(NULL);
+    CGFloat exposureDurationSec = settings[@"exposureDuration"] != nil ? [[settings valueForKey:@"exposureDuration"] floatValue] : nanf(NULL);
+    CGFloat exposureISO = settings[@"exposureISO"] != nil ? [[settings valueForKey:@"exposureISO"] floatValue] : nanf(NULL);
     CGFloat colorTemperature = settings[@"colorTemperature"] != nil ? [[settings valueForKey:@"colorTemperature"] floatValue] : nanf(NULL);
     CGPoint focusPoint = settings[@"focusPoint"] != nil ? [[settings valueForKey:@"focusPoint"] CGPointValue] : CGPointMake(0.5, 0.5);
     AVCaptureFocusMode *focusMode = settings[@"focusPoint"] != nil ? AVCaptureFocusModeAutoFocus : AVCaptureFocusModeContinuousAutoFocus;
@@ -258,16 +304,38 @@ RCT_EXPORT_METHOD(setCameraSettings:(NSDictionary *)settings
         AVCaptureWhiteBalanceGains normalizedGains = [self normalizedGains:[self.videoCaptureDevice deviceWhiteBalanceGainsForTemperatureAndTintValues:gains]];
         [self.videoCaptureDevice setWhiteBalanceModeLockedWithDeviceWhiteBalanceGains:normalizedGains completionHandler:nil];
       }
-      if (isnan(exposure)) {
-        [self.videoCaptureDevice setExposureTargetBias:0 completionHandler:nil];
+
+      if (!isnan(exposureISO) || !isnan(exposureDurationSec)) {
+        @try {
+          CGFloat exposureISOValue = isnan(exposureISO) ? AVCaptureISOCurrent : exposureISO;
+          CMTime exposureDuration = isnan(exposureDurationSec) ? AVCaptureExposureDurationCurrent : [self getExposureDurationFromSeconds:exposureDurationSec];
+          NSLog(@"react-native-webrtc component : set initial custom exposure: %f, %f", exposureISOValue, CMTimeGetSeconds(exposureDuration));
+          [self.videoCaptureDevice setExposureModeCustomWithDuration:exposureDuration ISO:exposureISOValue completionHandler:nil];
+        }
+        @catch (NSException * e) {
+          NSLog(@"react-native-webrtc component Exception: %@", e);
+          if (isnan(exposure)) {
+            [self.videoCaptureDevice setExposureTargetBias:0 completionHandler:nil];
+          } else {
+            [self.videoCaptureDevice setExposureTargetBias:exposure completionHandler:nil];
+          }
+          self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;          
+        }
+        @finally {
+          NSLog(@"react-native-webrtc component finally");
+        }
       } else {
-        [self.videoCaptureDevice setExposureTargetBias:exposure completionHandler:nil];
+        if (isnan(exposure)) {
+          [self.videoCaptureDevice setExposureTargetBias:0 completionHandler:nil];
+        } else {
+          [self.videoCaptureDevice setExposureTargetBias:exposure completionHandler:nil];
+        }
+        self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
       }
 
       self.videoCaptureDevice.focusPointOfInterest = focusPoint;
       self.videoCaptureDevice.exposurePointOfInterest = focusPoint;
 
-      self.videoCaptureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
       self.videoCaptureDevice.focusMode = focusMode;
 
       [self.videoCaptureSession commitConfiguration];
@@ -301,7 +369,13 @@ RCT_EXPORT_METHOD(fetchMinAndMaxValues:(RCTResponseSenderBlock)successCallback
   AVCaptureWhiteBalanceTemperatureAndTintValues maxColorTempAndTint = [self.videoCaptureDevice temperatureAndTintValuesForDeviceWhiteBalanceGains:maxWhiteBalanceGainsNormalized];
   AVCaptureWhiteBalanceTemperatureAndTintValues minColorTempAndTint = [self.videoCaptureDevice temperatureAndTintValuesForDeviceWhiteBalanceGains:minWhiteBalanceGainsNormalized];
 
+  AVCaptureDeviceFormat *activeFormat = self.videoCaptureDevice.activeFormat;
+
+  CGFloat minExposureDuration = CMTimeGetSeconds(activeFormat.minExposureDuration);
+  CGFloat maxExposureDuration = CMTimeGetSeconds(activeFormat.maxExposureDuration);
   CGFloat exposureDefaultValue = (abs(self.videoCaptureDevice.maxExposureTargetBias) - abs(self.videoCaptureDevice.minExposureTargetBias)) / 2;
+  CGFloat exposureISODefaultValue = (abs(activeFormat.maxISO) - abs(activeFormat.minISO)) / 2;
+  CGFloat exposureDurationDefaultValue = (abs(maxExposureDuration) - abs(minExposureDuration)) / 2;
 
   CGFloat maxColorTemperatureRawValue = maxColorTempAndTint.temperature;
   if (maxColorTemperatureRawValue < maxColorTemperatureHardcodedValue) {
@@ -324,6 +398,16 @@ RCT_EXPORT_METHOD(fetchMinAndMaxValues:(RCTResponseSenderBlock)successCallback
       @"minimumValue" : @(MAX(-4, self.videoCaptureDevice.minExposureTargetBias)),
       @"maximumValue" : @(MIN(4, self.videoCaptureDevice.maxExposureTargetBias)),
       @"defaultValue" : @(exposureDefaultValue)
+    },
+    @"exposureDuration" : @{
+      @"minimumValue" : @(minExposureDuration),
+      @"maximumValue" : @(maxExposureDuration),
+      @"defaultValue" : @(exposureDurationDefaultValue)
+    },
+    @"exposureISO" : @{
+      @"minimumValue" : @(activeFormat.minISO),
+      @"maximumValue" : @(activeFormat.maxISO),
+      @"defaultValue" : @(exposureISODefaultValue)
     },
     @"colorTemperature" : @{
       @"minimumValue" : @(minColorTemperatureValue),
